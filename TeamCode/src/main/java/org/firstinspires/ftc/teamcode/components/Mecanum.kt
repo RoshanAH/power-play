@@ -19,7 +19,6 @@ class Mecanum(map: HardwareMap, fl: String, fr: String, bl: String, br: String) 
   var brPower: Double = 0.0;
 
   init {
-
     this.fl.setDirection(DcMotorSimple.Direction.FORWARD);
     this.fr.setDirection(DcMotorSimple.Direction.REVERSE);
     this.bl.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -29,7 +28,6 @@ class Mecanum(map: HardwareMap, fl: String, fr: String, bl: String, br: String) 
     this.fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     this.bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     this.br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
   }
 
   fun move(fl: Double, fr: Double, bl: Double, br: Double) {

@@ -11,6 +11,10 @@ class Jaws : Robot() {
   lateinit var drivetrain: Mecanum
   lateinit var slides: Slides
 
+  val low = 0.45
+  val medium = 0.7
+  val high = 1.0
+
   override fun mapHardware(map: HardwareMap) {
     drivetrain = Mecanum(map, "fl", "fr", "bl", "br")
 

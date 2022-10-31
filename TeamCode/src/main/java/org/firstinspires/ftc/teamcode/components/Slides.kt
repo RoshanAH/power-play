@@ -28,6 +28,9 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
   var position = 0.0
     private set
   var targetPosition = 0.0
+    set(value) {
+      field = value.coerceIn(0.0..1.0)
+    }
 
   private var lastTime = System.nanoTime() * 1e-9
   private var lastError = 0.0
@@ -36,9 +39,16 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
     get() = targetPosition - position
 
 
-  override fun init() {}
+  override fun init() {
+    left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)  
+    right.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)  
+
+    left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER)  
+    right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER)  
+  }
   override fun start() {}
   override fun update() {
+
 
     val time = System.nanoTime() * 1e-9
     val deltaTime = time - lastTime
