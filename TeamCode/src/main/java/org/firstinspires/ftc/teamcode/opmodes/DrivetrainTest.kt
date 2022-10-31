@@ -1,9 +1,9 @@
 package org.firstinspires.ftc.teamcode.opmodes
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.core.Robot
 import org.firstinspires.ftc.teamcode.robots.Jaws
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 
 @TeleOp
 class DrivetrainTest : BaseOpmode() {

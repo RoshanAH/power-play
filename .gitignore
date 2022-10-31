@@ -12,6 +12,9 @@
 # Java class files
 *.class
 
+# Project files from nvim
+*.project
+
 # Generated files
 bin/
 gen/

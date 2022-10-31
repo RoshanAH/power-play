@@ -10,7 +10,7 @@
 
 
 // Custom definitions may go here
-
+apply plugin: 'org.jetbrains.kotlin.android'
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
@@ -21,5 +21,6 @@ android {
 
 dependencies {
     implementation project(':FtcRobotController')
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7'
     annotationProcessor files('lib/OpModeAnnotationProcessor.jar')
 }

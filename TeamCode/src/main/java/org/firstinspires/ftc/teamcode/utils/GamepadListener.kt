@@ -34,7 +34,7 @@ class GamepadListener{
     var onRTMove: () -> Unit = {}
     var onLTMove: () -> Unit = {}
 
-    private buttons = listOf(
+    private val buttons = listOf(
             a,
             b,
             x,

@@ -39,9 +39,12 @@ class Mecanum(map: HardwareMap, fl: String, fr: String, bl: String, br: String) 
     brPower = br;
   }
 
-  fun drive(x: Double, y: Double, rot: Double){
-
-  }
+  fun drive(x: Double, y: Double, rot: Double) = move(
+    y + x + rot,
+    y - x - rot,
+    y - x + rot,
+    y + x - rot,
+  )
 
   fun drive(gamepad: Gamepad) = drive(
     gamepad.left_stick_x.toDouble(), 
