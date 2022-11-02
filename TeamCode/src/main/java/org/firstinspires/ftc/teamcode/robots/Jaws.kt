@@ -16,7 +16,10 @@ class Jaws : Robot() {
   val high = 1.0
 
   override fun mapHardware(map: HardwareMap) {
-    drivetrain = Mecanum(map, "fl", "fr", "bl", "br")
+    drivetrain = Mecanum(map, "fl", "fr", "bl", "br").apply {
+      maxAccel = 5.0
+      ticksPerInch = 100.0
+    }
 
     slides = Slides(map, "left", "right", "claw").apply {
       maxticks = 1125
