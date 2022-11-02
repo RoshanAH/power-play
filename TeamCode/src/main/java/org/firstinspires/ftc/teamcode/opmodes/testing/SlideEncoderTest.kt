@@ -50,7 +50,7 @@ class SlideEncoderTest : BaseOpmode() {
 
     slides.open = open 
     slides.close = close 
-    slides.clawPos = clawPos 
+    slides.close()
     slides.targetPosition = targetPosition 
     
     telemetry.addData("slideTicks", slides.position * slides.maxticks)

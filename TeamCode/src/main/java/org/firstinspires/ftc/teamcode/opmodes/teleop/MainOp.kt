@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes
+package org.firstinspires.ftc.teamcode.opmodes.teleop
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
@@ -18,17 +18,13 @@ class MainOp : BaseOpmode() {
 
     gamepadListener2.apply {
       a.onPress = {
-        robot.slides.apply { if (clawPos == open) clawPos = close else clawPos = open }
+        robot.slides.apply { if (clawPos == open) close() else open() }
       }
 
-      dd.onPress = { robot.slides.targetPosition = 0.02 }
+      dd.onPress = { robot.slides.targetPosition = 0.01 }
       dl.onPress = { robot.slides.targetPosition = robot.low }
       dr.onPress = { robot.slides.targetPosition = robot.medium }
       du.onPress = { robot.slides.targetPosition = robot.high }
-
-      onJoystickMove = {
-        robot.slides.targetPosition -= gamepad2.left_stick_y * 0.05
-      }
     }
   }
 
@@ -39,5 +35,6 @@ class MainOp : BaseOpmode() {
             -gamepad1.left_stick_y.toDouble() * brake,
             gamepad1.right_stick_x.toDouble() * brake * 0.7
         )
+        robot.slides.targetPosition -= gamepad2.left_stick_y * 0.05
   }
 }

@@ -15,6 +15,10 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
   var open = 0.5
   var close = 0.5
   var clawPos = open
+    private set
+
+  var lastGrab = System.nanoTime() * 1e-9
+  var pendingRaise = false
 
   val left = map.dcMotor.get(left)
   val right = map.dcMotor.get(right)
@@ -38,6 +42,16 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
   private val error
     get() = targetPosition - position
 
+  fun open(){
+    clawPos = open
+  } 
+
+  fun close(){
+    clawPos = close
+    pendingRaise = true
+    lastGrab = System.nanoTime() * 1e-9
+  }
+
 
   override fun init() {
     left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)  
@@ -46,13 +60,17 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
     left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER)  
     right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER)  
   }
+
   override fun start() {}
   override fun update() {
-
-
     val time = System.nanoTime() * 1e-9
     val deltaTime = time - lastTime
     lastTime = time
+
+    if (pendingRaise && time - lastGrab > 0.5) {
+      pendingRaise = false
+      targetPosition += 0.07
+    }
 
     position = (left.getCurrentPosition() + right.getCurrentPosition()).toDouble() * 0.5 / maxticks
     val derivative = -error / deltaTime

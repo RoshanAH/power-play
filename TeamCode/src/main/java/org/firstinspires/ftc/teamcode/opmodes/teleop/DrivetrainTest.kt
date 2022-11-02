@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes
+package org.firstinspires.ftc.teamcode.opmodes.teleop
 
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.core.Robot

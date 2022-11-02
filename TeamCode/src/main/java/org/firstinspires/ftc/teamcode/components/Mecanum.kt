@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.teamcode.core.Component;
+import kotlin.math.abs
 
 class Mecanum(map: HardwareMap, fl: String, fr: String, bl: String, br: String) : Component{
   val fl = map.dcMotor.get(fl);
@@ -31,10 +32,17 @@ class Mecanum(map: HardwareMap, fl: String, fr: String, bl: String, br: String) 
   }
 
   fun move(fl: Double, fr: Double, bl: Double, br: Double) {
-    flPower = fl;
-    frPower = fr;
-    blPower = bl;
-    brPower = br;
+    var max = abs(fl)
+    max = max.coerceAtLeast(abs(fr))
+    max = max.coerceAtLeast(abs(bl))
+    max = max.coerceAtLeast(abs(br))
+
+    val scale = (1.0 / max).coerceAtMost(1.0)
+
+    flPower = fl * scale
+    frPower = fr * scale
+    blPower = bl * scale
+    brPower = br * scale
   }
 
   fun drive(x: Double, y: Double, rot: Double) = move(
