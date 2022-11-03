@@ -9,7 +9,7 @@ class MainOp : BaseOpmode() {
   val robot = Jaws()
   override fun setRobot() = robot
 
-  override fun onStart() {
+  override suspend fun onStart() {
 
     gamepadListener1.apply {
       onJoystickMove = {
@@ -28,7 +28,7 @@ class MainOp : BaseOpmode() {
     }
   }
 
-  override fun onUpdate(){
+  override suspend fun onUpdate(){
         val brake = if (gamepad1.right_bumper) 0.3 else (1.0 - robot.slides.position * 0.7)
         robot.drivetrain.drive(
             gamepad1.left_stick_x.toDouble() * brake,

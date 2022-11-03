@@ -9,18 +9,20 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.HashMap;
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
 
 abstract class BaseOpmode : LinearOpMode() {
   private lateinit var robot: Robot
 
   val gamepadListener1 = GamepadListener()
   val gamepadListener2 = GamepadListener()
-  override fun runOpMode() {   
+  override fun runOpMode() = runBlocking {   
     robot = setRobot();
 
     try {
       robot.mapHardware(hardwareMap)
-      robot.components.forEach { it.init() }
+      robot.components.forEach { it.init(this) }
     }catch (e: NullPointerException){
       val sw = StringWriter()
       e.printStackTrace(PrintWriter(sw))
@@ -28,24 +30,23 @@ abstract class BaseOpmode : LinearOpMode() {
       telemetry.update()
 
       waitForStart()
-      return
+      return@runBlocking
     }
 
-    onInit()
+    onInit(this)
 
     waitForStart()
 
-    onStart()
-    robot.components.forEach { it.start() }
+    onStart(this)
+    robot.components.forEach { it.start(this) }
 
     while(opModeIsActive()){
       gamepadListener1.update(gamepad1)
       gamepadListener2.update(gamepad2)
-      onUpdate()
-      robot.components.forEach { it.update() }
+      onUpdate(this)
+      robot.components.forEach { it.update(this) }
     }
   }
-
 
 
   protected fun getBatteryVoltage(): Double {
@@ -61,7 +62,7 @@ abstract class BaseOpmode : LinearOpMode() {
 
   protected abstract fun setRobot(): Robot
 
-  open fun onInit() {}
-  open fun onStart() {}
-  open fun onUpdate() {}
+  open fun onInit(scope: CoroutineScope) {}
+  open fun onStart(scope: CoroutineScope) {}
+  open fun onUpdate(scope: CoroutineScope) {}
 }

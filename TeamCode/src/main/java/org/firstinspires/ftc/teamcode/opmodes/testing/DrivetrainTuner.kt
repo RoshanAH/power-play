@@ -1,25 +1,29 @@
 package org.firstinspires.ftc.teamcode.opmodes.testing
 
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
+import com.qualcomm.robotcore.hardware.HardwareMap
+import kotlinx.coroutines.CoroutineScope
+import org.firstinspires.ftc.teamcode.components.Mecanum
+import org.firstinspires.ftc.teamcode.core.BaseOpmode
+import org.firstinspires.ftc.teamcode.core.Robot
 
-class DrivetrainTuner: LinearOpMode() {
+class DrivetrainTuner : BaseOpmode() {
 
-  override fun runOpMode(){
+  private lateinit var dt: Mecanum
 
-    val fl = hardwareMap.dcMotor.get("fl")
-    val fr = hardwareMap.dcMotor.get("fr")
-    val bl = hardwareMap.dcMotor.get("bl")
-    val br = hardwareMap.dcMotor.get("br")
+  override fun setRobot() =
+      object : Robot() {
+        override fun mapHardware(map: HardwareMap) {
+          addComponents(dt)
+        }
+      }
 
-    waitForStart()
+  override fun onStart(scope: CoroutineScope) {}
 
-    while(opModeIsActive()){
-      telemetry.addData("fl", fl.currentPosition)
-      telemetry.addData("fr", fr.currentPosition)
-      telemetry.addData("bl", bl.currentPosition)
-      telemetry.addData("br", br.currentPosition)
-      telemetry.update()
-    }
+  override fun onUpdate(scope: CoroutineScope) {
+    telemetry.addData("fl", dt.flp)
+    telemetry.addData("fr", dt.frp)
+    telemetry.addData("bl", dt.blp)
+    telemetry.addData("br", dt.brp)
+    telemetry.update()
   }
-
 }

@@ -11,7 +11,7 @@ class DrivetrainTest : BaseOpmode() {
 
   override fun setRobot(): Robot = robot
 
-  override fun onStart() {
+  override suspend fun onStart() {
     gamepadListener1.onJoystickMove = { robot.drivetrain.drive(gamepad1) }
   }
 }
