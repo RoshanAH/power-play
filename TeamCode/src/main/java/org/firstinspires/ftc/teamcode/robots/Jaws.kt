@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.robots
 import org.firstinspires.ftc.teamcode.core.Robot
 import org.firstinspires.ftc.teamcode.components.Mecanum
 import org.firstinspires.ftc.teamcode.components.Slides
+import org.firstinspires.ftc.teamcode.components.Webcam
 import com.qualcomm.robotcore.hardware.HardwareMap
 
 
@@ -17,8 +18,7 @@ class Jaws : Robot() {
 
   override fun mapHardware(map: HardwareMap) {
     drivetrain = Mecanum(map, "fl", "fr", "bl", "br").apply {
-      maxAccel = 5.0
-      ticksPerInch = 100.0
+      ticksPerInch = 31.125
     }
 
     slides = Slides(map, "left", "right", "claw").apply {

@@ -3,19 +3,14 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.robots.Jaws
+import kotlinx.coroutines.CoroutineScope
 
 @TeleOp
 class MainOp : BaseOpmode() {
   val robot = Jaws()
   override fun setRobot() = robot
 
-  override suspend fun onStart() {
-
-    gamepadListener1.apply {
-      onJoystickMove = {
-      }
-    }
-
+  override fun onStart(scope: CoroutineScope) {
     gamepadListener2.apply {
       a.onPress = {
         robot.slides.apply { if (clawPos == open) close() else open() }
@@ -28,7 +23,7 @@ class MainOp : BaseOpmode() {
     }
   }
 
-  override suspend fun onUpdate(){
+  override fun onUpdate(scope: CoroutineScope){
         val brake = if (gamepad1.right_bumper) 0.3 else (1.0 - robot.slides.position * 0.7)
         robot.drivetrain.drive(
             gamepad1.left_stick_x.toDouble() * brake,

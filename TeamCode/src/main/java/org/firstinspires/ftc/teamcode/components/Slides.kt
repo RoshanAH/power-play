@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.DcMotor
 import org.firstinspires.ftc.teamcode.core.Component
+import kotlinx.coroutines.CoroutineScope
 
 class Slides(map: HardwareMap, left: String, right: String, claw: String) : Component {
 
@@ -53,7 +54,7 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
   }
 
 
-  override fun init() {
+  override fun init(scope: CoroutineScope) {
     left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)  
     right.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)  
 
@@ -61,8 +62,8 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
     right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER)  
   }
 
-  override fun start() {}
-  override fun update() {
+  override fun start(scope: CoroutineScope) {}
+  override fun update(scope: CoroutineScope) {
     val time = System.nanoTime() * 1e-9
     val deltaTime = time - lastTime
     lastTime = time

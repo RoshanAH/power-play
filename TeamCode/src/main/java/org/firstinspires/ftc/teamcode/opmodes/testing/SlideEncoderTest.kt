@@ -8,6 +8,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import org.firstinspires.ftc.teamcode.components.Slides
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.core.Robot
+import kotlinx.coroutines.CoroutineScope
 
 @TeleOp(group = "testing")
 @Config
@@ -35,14 +36,14 @@ class SlideEncoderTest : BaseOpmode() {
           }
       }
 
-  override fun onInit() {
+  override fun onInit(scope: CoroutineScope) {
     //        FTCDashboard is the web browser app that we use to tweak and see values from out computer
         val dash = FtcDashboard.getInstance();
 //        This diverts any incoming telemetry to both the driver station's telemetry and FTCDashboard's telemetry
         telemetry = MultipleTelemetry(telemetry, dash.getTelemetry());
   }
 
-  override fun onUpdate(){
+  override fun onUpdate(scope: CoroutineScope){
     slides.maxticks = maxticks 
     slides.p = p 
     slides.d = d 

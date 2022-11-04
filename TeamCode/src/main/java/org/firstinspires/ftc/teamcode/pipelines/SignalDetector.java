@@ -25,35 +25,33 @@ public class SignalDetector extends OpenCvPipeline {
   Mat yellowMask = new Mat();
   Mat magentaMask = new Mat();
 
-  public static double lbh = 85;
-  public static double lbs = 108;
-  public static double lbl = 49;
+  public static double lb1 = 0;
+  public static double lb2 = 120;
+  public static double lb3 = 70;
 
-  public static double hbh = 116;
-  public static double hbs = 152;
-  public static double hbl = 128;
+  public static double hb1 = 255;
+  public static double hb2 = 152;
+  public static double hb3 = 128;
   
-  public static double lyh = 3;
-  public static double lys = 57;
-  public static double lyl = 26;
+  public static double ly1 = 0;
+  public static double ly2 = 40;
+  public static double ly3 = 80;
 
-  public static double hyh = 31;
-  public static double hys = 255;
-  public static double hyl = 183;
+  public static double hy1 = 100;
+  public static double hy2 = 255;
+  public static double hy3 = 180;
 
-  public static double lmh = 142;
-  public static double lms = 57;
-  public static double lml = 26;
+  public static double lm1 = 140;
+  public static double lm2 = 50;
+  public static double lm3 = 30;
 
-  public static double hmh = 194;
-  public static double hms = 180;
-  public static double hml = 130;
+  public static double hm1 = 255;
+  public static double hm2 = 255;
+  public static double hm3 = 255;
 
-  public Out stage = Out.RAW;
+  public static Out stage = Out.RAW;
 
   public int signalVal = 0;
-
-  private Telemetry telemetry;
 
   enum Out {
     RAW, 
@@ -68,9 +66,9 @@ public class SignalDetector extends OpenCvPipeline {
     Imgproc.blur(input, input, new Size(3, 3));
     Imgproc.cvtColor(input, hslMat, Imgproc.COLOR_RGB2HLS);
 
-    Core.inRange(hslMat, new Scalar(lbh, lbs, lbl), new Scalar(hbh, hbs, hbl), blueMask);
-    Core.inRange(hslMat, new Scalar(lyh, lys, lyl), new Scalar(hyh, hys, hyl), yellowMask);
-    Core.inRange(hslMat, new Scalar(lyh, lys, lyl), new Scalar(hmh, hms, hml), magentaMask);
+    Core.inRange(hslMat, new Scalar(lb1, lb2, lb3), new Scalar(hb1, hb2, hb3), blueMask);
+    Core.inRange(hslMat, new Scalar(ly1, ly2, ly3), new Scalar(hy1, hy2, hy3), yellowMask);
+    Core.inRange(hslMat, new Scalar(lm1, lm2, lm3), new Scalar(hm1, hm2, hm3), magentaMask);
 
     final double bluePixels = Core.countNonZero(blueMask);
     final double yellowPixels = Core.countNonZero(yellowMask);
@@ -83,11 +81,11 @@ public class SignalDetector extends OpenCvPipeline {
     else if(yellowPixels > bluePixels && yellowPixels > magentaPixels) 
       signalVal = 3;
 
-    telemetry.addData("blue", bluePixels);
-    telemetry.addData("yellow", yellowPixels);
-    telemetry.addData("magenta", magentaPixels);
-    telemetry.addData("signal value", signalVal);
-    telemetry.update();
+    // telemetry.addData("blue", bluePixels);
+    // telemetry.addData("yellow", yellowPixels);
+    // telemetry.addData("magenta", magentaPixels);
+    // telemetry.addData("signal value", signalVal);
+    // telemetry.update();
 
     switch (stage){
       default: return input;
