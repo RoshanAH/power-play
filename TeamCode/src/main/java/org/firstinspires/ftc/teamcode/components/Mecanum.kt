@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.HardwareMap
+import com.qualcomm.robotcore.hardware.DcMotorEx
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.yield
@@ -17,14 +18,14 @@ class Mecanum(
     br: String,
 ) : Component {
 
-  private var lastTime = System.nanoTime() * 1e-9
 
-  val fl = map.dcMotor.get(fl)
-  val fr = map.dcMotor.get(fr)
-  val bl = map.dcMotor.get(bl)
-  val br = map.dcMotor.get(br)
+  val fl = map.get(DcMotorEx::class.java, fl)
+  val fr = map.get(DcMotorEx::class.java, fr)
+  val bl = map.get(DcMotorEx::class.java, bl)
+  val br = map.get(DcMotorEx::class.java, br)
 
   var ticksPerInch = 0.0
+  var ticksPerDegree = 0.0
 
   var flPower: Double = 0.0
   var frPower: Double = 0.0
@@ -38,6 +39,15 @@ class Mecanum(
   var blp = 0.0
     private set
   var brp = 0.0
+    private set
+
+  var flv = 0.0
+    private set
+  var frv = 0.0
+    private set
+  var blv = 0.0
+    private set
+  var brv = 0.0
     private set
 
   init {
@@ -89,6 +99,7 @@ class Mecanum(
           (brtp - brp) * kp,
       )
 
+
   suspend fun moveUntilDone(
       fltp: Double,
       frtp: Double,
@@ -108,6 +119,56 @@ class Mecanum(
       yield()
     }
   }
+
+  fun turnTo(theta: Double, kp: Double){
+    val inchesPerDegree = ticksPerInch / ticksPerDegree
+    val inches = theta * inchesPerDegree
+    moveTo(inches, -inches, inches, -inches, kp * inchesPerDegree)
+  } 
+
+  suspend fun turnUntil(
+    theta: Double,
+    kp: Double,
+    tolerance: Double,
+    update: () -> Unit = { }
+  ){
+    val inchesPerDegree = ticksPerInch / ticksPerDegree
+    val inches = theta * inchesPerDegree
+    moveUntilDone(inches, -inches, inches, -inches, kp * inchesPerDegree, tolerance * inchesPerDegree, update)
+  }
+
+  fun forwardTo(inches: Double, kp: Double) = moveTo(inches, inches, inches, inches, kp)
+  suspend fun forwardUntilDone(
+    inches: Double,
+    kp: Double,
+    tolerance: Double,
+    update: () -> Unit = {}
+  ) = moveUntilDone(
+    inches,
+    inches,
+    inches,
+    inches,
+    kp,
+    tolerance,
+    update
+  )
+
+  fun strafeTo(inches: Double, kp: Double) = moveTo(inches, -inches, -inches, inches, kp)
+  suspend fun strafeUntilDone(
+    inches: Double,
+    kp: Double,
+    tolerance: Double,
+    update: () -> Unit = {}
+  ) = moveUntilDone(
+    inches,
+    -inches,
+    -inches,
+    inches,
+    kp,
+    tolerance,
+    update
+  )
+    
 
   fun drive(x: Double, y: Double, rot: Double) =
       move(
@@ -129,12 +190,16 @@ class Mecanum(
   override fun start(scope: CoroutineScope) {}
 
   override fun update(scope: CoroutineScope) {
-    val time = System.nanoTime() * 1e-9
 
     flp = fl.getCurrentPosition() / ticksPerInch
     frp = fr.getCurrentPosition() / ticksPerInch
     blp = bl.getCurrentPosition() / ticksPerInch
     brp = br.getCurrentPosition() / ticksPerInch
+
+    flv = fl.getVelocity() / ticksPerInch
+    frv = fr.getVelocity() / ticksPerInch
+    blv = bl.getVelocity() / ticksPerInch
+    brv = br.getVelocity() / ticksPerInch
 
     fl.setPower(flPower)
     fr.setPower(frPower)

@@ -11,6 +11,7 @@ import org.opencv.core.MatOfPoint
 import org.opencv.core.Scalar
 import org.opencv.imgproc.Imgproc
 import org.openftc.easyopencv.OpenCvPipeline
+import kotlin.math.abs
 
 @Config
 class AlignmentDetector : OpenCvPipeline(){
@@ -37,39 +38,42 @@ class AlignmentDetector : OpenCvPipeline(){
       ALL
   }
 
+  companion object {
+    @JvmField var lr1 = 0.0
+    @JvmField var lr2 = 0.0
+    @JvmField var lr3 = 0.0
 
-  @JvmField var lr1 = 0.0
-  @JvmField var lr2 = 0.0
-  @JvmField var lr3 = 0.0
+    @JvmField var hr1 = 255.0
+    @JvmField var hr2 = 255.0
+    @JvmField var hr3 = 255.0
 
-  @JvmField var hr1 = 0.0
-  @JvmField var hr2 = 0.0
-  @JvmField var hr3 = 0.0
+    @JvmField var lb1 = 0.0
+    @JvmField var lb2 = 0.0
+    @JvmField var lb3 = 0.0
 
-  @JvmField var lb1 = 0.0
-  @JvmField var lb2 = 0.0
-  @JvmField var lb3 = 0.0
+    @JvmField var hb1 = 255.0
+    @JvmField var hb2 = 255.0
+    @JvmField var hb3 = 255.0
 
-  @JvmField var hb1 = 0.0
-  @JvmField var hb2 = 0.0
-  @JvmField var hb3 = 0.0
+    @JvmField var ly1 = 0.0
+    @JvmField var ly2 = 0.0
+    @JvmField var ly3 = 0.0
 
-  @JvmField var ly1 = 0.0
-  @JvmField var ly2 = 0.0
-  @JvmField var ly3 = 0.0
+    @JvmField var hy1 = 255.0
+    @JvmField var hy2 = 255.0
+    @JvmField var hy3 = 255.0
 
-  @JvmField var hy1 = 0.0
-  @JvmField var hy2 = 0.0
-  @JvmField var hy3 = 0.0
+    @JvmField var minArea = 100.0
 
-  @JvmField var minArea = 100.0
-
-  @JvmField var captureMode = CaptureMode.ALL
-  @JvmField var stage = Stage.OBJECTS
+    @JvmField var captureMode = CaptureMode.ALL
+    @JvmField var stage = Stage.OBJECTS
+  }
 
 
   private val contours = mutableListOf<MatOfPoint>()
   var objects = listOf<Point>()
+    private set
+  var center: Point? = null
     private set
 
   override fun processFrame(input: Mat): Mat{
@@ -109,8 +113,18 @@ class AlignmentDetector : OpenCvPipeline(){
 
       Point((minX + maxX - input.width()) * 0.5, input.height() * 0.5 - maxY)
     }
-
-
+        
+    // find object closest to the center
+    if(objects.isNotEmpty()){
+      var center = objects[0]
+      for(i in 1 until objects.size){
+        val obj = objects[i]
+          if (abs(obj.x) < abs(center.x)) center = obj
+      }
+      this.center = center
+    } else {
+      this.center = null
+    }
     return when (stage){
       Stage.RED_MASK -> redMask
       Stage.BLUE_MASK -> blueMask

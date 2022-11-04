@@ -15,12 +15,10 @@ class SignalTest : LinearOpMode(){
 
   companion object {
     @JvmField var cameraAngle = 0.0
-    @JvmField var exposure = 10
   }
 
   override fun runOpMode() = runBlocking{
     val camera = Webcam(hardwareMap, "camera", "mount").apply{
-      exposure = SignalTest.exposure.toLong()
       startCamera()
     }
 
@@ -40,7 +38,6 @@ class SignalTest : LinearOpMode(){
       lastTime = time
 
       camera.theta = cameraAngle
-      camera.exposure = exposure.toLong()
 
       camera.update(this)
       telemetry.addData("signal", camera.signalPipeline.signalVal)
