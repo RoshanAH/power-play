@@ -1,11 +1,12 @@
 package org.firstinspires.ftc.teamcode.components
 
 import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.HardwareMap
-import com.qualcomm.robotcore.hardware.DcMotorEx
 import kotlin.math.abs
+import kotlin.math.sign
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.yield
 import org.firstinspires.ftc.teamcode.core.Component
@@ -17,7 +18,6 @@ class Mecanum(
     bl: String,
     br: String,
 ) : Component {
-
 
   val fl = map.get(DcMotorEx::class.java, fl)
   val fr = map.get(DcMotorEx::class.java, fr)
@@ -62,7 +62,6 @@ class Mecanum(
     this.fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE)
     this.bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE)
     this.br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE)
-
   }
 
   fun move(fl: Double, fr: Double, bl: Double, br: Double) {
@@ -99,16 +98,19 @@ class Mecanum(
           (brtp - brp) * kp,
       )
 
-
   suspend fun moveUntilDone(
-      fltp: Double,
-      frtp: Double,
-      bltp: Double,
-      brtp: Double,
+      fltrp: Double,
+      frtrp: Double,
+      bltrp: Double,
+      brtrp: Double,
       kp: Double,
       tolerance: Double,
       update: () -> Unit = {}
   ) {
+    val fltp = fltrp + flp
+    val frtp = frtrp + frp
+    val bltp = bltrp + blp
+    val brtp = brtrp + brp
 
     while (abs(fltp - flp) > tolerance &&
         abs(frtp - frp) > tolerance &&
@@ -118,57 +120,60 @@ class Mecanum(
       update()
       yield()
     }
+
+    move(0.0, 0.0, 0.0, 0.0)
   }
 
-  fun turnTo(theta: Double, kp: Double){
+  fun turnTo(theta: Double, kp: Double) {
     val inchesPerDegree = ticksPerInch / ticksPerDegree
     val inches = theta * inchesPerDegree
     moveTo(inches, -inches, inches, -inches, kp * inchesPerDegree)
-  } 
+  }
 
-  suspend fun turnUntil(
-    theta: Double,
-    kp: Double,
-    tolerance: Double,
-    update: () -> Unit = { }
-  ){
-    val inchesPerDegree = ticksPerInch / ticksPerDegree
+  suspend fun turnUntilDone(theta: Double, kp: Double, tolerance: Double, update: () -> Unit = {}) {
+    val inchesPerDegree = ticksPerDegree / ticksPerInch 
     val inches = theta * inchesPerDegree
-    moveUntilDone(inches, -inches, inches, -inches, kp * inchesPerDegree, tolerance * inchesPerDegree, update)
+    moveUntilDone(
+        inches,
+        -inches,
+        inches,
+        -inches,
+        kp * inchesPerDegree,
+        tolerance * inchesPerDegree,
+        update
+    )
   }
 
   fun forwardTo(inches: Double, kp: Double) = moveTo(inches, inches, inches, inches, kp)
   suspend fun forwardUntilDone(
-    inches: Double,
-    kp: Double,
-    tolerance: Double,
-    update: () -> Unit = {}
-  ) = moveUntilDone(
-    inches,
-    inches,
-    inches,
-    inches,
-    kp,
-    tolerance,
-    update
-  )
+      inches: Double,
+      kp: Double,
+      tolerance: Double,
+      update: () -> Unit = {}
+  ) = moveUntilDone(inches, inches, inches, inches, kp, tolerance, update)
 
   fun strafeTo(inches: Double, kp: Double) = moveTo(inches, -inches, -inches, inches, kp)
   suspend fun strafeUntilDone(
-    inches: Double,
-    kp: Double,
-    tolerance: Double,
-    update: () -> Unit = {}
-  ) = moveUntilDone(
-    inches,
-    -inches,
-    -inches,
-    inches,
-    kp,
-    tolerance,
-    update
-  )
-    
+      inches: Double,
+      kp: Double,
+      tolerance: Double,
+      update: () -> Unit = {}
+  ){
+    val fltp = inches + flp
+    val frtp = -inches + frp
+    val bltp = -inches + blp
+    val brtp = inches + brp
+
+    var error = (abs(fltp - flp) + abs(frtp - frp) + abs(bltp - blp) + abs(brtp - brp)) * 0.25
+    while (abs(error) > tolerance) {
+      error = (abs(fltp - flp) + abs(frtp - frp) + abs(bltp - blp) + abs(brtp - brp)) * 0.25 
+      move(error * kp * sign(inches), -error * kp * sign(inches), -error * kp * sign(inches), error * kp * sign(inches))
+      update()
+      yield()
+    }
+
+    move(0.0, 0.0, 0.0, 0.0)
+  }
 
   fun drive(x: Double, y: Double, rot: Double) =
       move(

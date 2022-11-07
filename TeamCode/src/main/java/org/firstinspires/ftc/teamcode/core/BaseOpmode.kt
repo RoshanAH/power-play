@@ -9,20 +9,21 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.HashMap;
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.*
 
 abstract class BaseOpmode : LinearOpMode() {
   private lateinit var robot: Robot
 
   val gamepadListener1 = GamepadListener()
   val gamepadListener2 = GamepadListener()
-  override fun runOpMode() = runBlocking {   
+  val scope = CoroutineScope(Dispatchers.Main)
+
+  override fun runOpMode() {
     robot = setRobot();
 
     try {
       robot.mapHardware(hardwareMap)
-      robot.components.forEach { it.init(this) }
+      robot.components.forEach { it.init(scope) }
     }catch (e: NullPointerException){
       val sw = StringWriter()
       e.printStackTrace(PrintWriter(sw))
@@ -30,21 +31,21 @@ abstract class BaseOpmode : LinearOpMode() {
       telemetry.update()
 
       waitForStart()
-      return@runBlocking
+      return
     }
 
-    onInit(this)
+    onInit(scope)
 
     waitForStart()
 
-    onStart(this)
-    robot.components.forEach { it.start(this) }
+    onStart(scope)
+    robot.components.forEach { it.start(scope) }
 
     while(opModeIsActive()){
       gamepadListener1.update(gamepad1)
       gamepadListener2.update(gamepad2)
-      onUpdate(this)
-      robot.components.forEach { it.update(this) }
+      onUpdate(scope)
+      robot.components.forEach { it.update(scope) }
     }
   }
 

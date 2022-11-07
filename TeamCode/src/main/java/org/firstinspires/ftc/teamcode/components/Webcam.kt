@@ -26,7 +26,7 @@ class Webcam(
   val robotVel: () -> Double = { 0.0 }
 ) : Component {
 
-  var height = 0.0
+  var height = 9.25 
   var kp = 0.5 // how sensitive camera turret is to lock onto object
   var signalTheta = 80.0
 
@@ -86,9 +86,11 @@ class Webcam(
     if (aligning) {
       val center = alignmentPipeline.center
       if (center != null){
-        // change in theta as a function of velocity is v * cos(theta) / height
+        // change in theta as a function of velocity is v * cos(theta)^2 / height
         val dTheta = robotVel() * cos(theta.rad).pow(2.0) / height
-        theta += dTheta * deltaTime + center.y * kp
+        // theta += dTheta * deltaTime + center.y * kp
+        theta += center.y * kp
+        theta = theta.coerceIn(0.0..90.0)
       } else{
         // if there are no objects detected move the camera up to look at poles
         theta = 90.0

@@ -49,10 +49,13 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
 
   fun close(){
     clawPos = close
+  }
+
+  fun closeAndRaise(){
+    clawPos = close
     pendingRaise = true
     lastGrab = System.nanoTime() * 1e-9
   }
-
 
   override fun init(scope: CoroutineScope) {
     left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)  

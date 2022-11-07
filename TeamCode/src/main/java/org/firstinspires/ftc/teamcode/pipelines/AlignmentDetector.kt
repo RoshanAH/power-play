@@ -40,33 +40,33 @@ class AlignmentDetector : OpenCvPipeline(){
 
   companion object {
     @JvmField var lr1 = 0.0
-    @JvmField var lr2 = 0.0
+    @JvmField var lr2 = 180.0
     @JvmField var lr3 = 0.0
 
-    @JvmField var hr1 = 255.0
+    @JvmField var hr1 = 200.0
     @JvmField var hr2 = 255.0
     @JvmField var hr3 = 255.0
 
-    @JvmField var lb1 = 0.0
-    @JvmField var lb2 = 0.0
-    @JvmField var lb3 = 0.0
+    @JvmField var lb1 = 50.0
+    @JvmField var lb2 = 100.0
+    @JvmField var lb3 = 170.0
 
-    @JvmField var hb1 = 255.0
-    @JvmField var hb2 = 255.0
+    @JvmField var hb1 = 150.0
+    @JvmField var hb2 = 150.0
     @JvmField var hb3 = 255.0
 
-    @JvmField var ly1 = 0.0
-    @JvmField var ly2 = 0.0
-    @JvmField var ly3 = 0.0
+    @JvmField var ly1 = 100.0
+    @JvmField var ly2 = 140.0
+    @JvmField var ly3 = 50.0
 
-    @JvmField var hy1 = 255.0
-    @JvmField var hy2 = 255.0
-    @JvmField var hy3 = 255.0
+    @JvmField var hy1 = 200.0
+    @JvmField var hy2 = 180.0
+    @JvmField var hy3 = 100.0
 
-    @JvmField var minArea = 100.0
+    @JvmField var minArea = 500.0
 
     @JvmField var captureMode = CaptureMode.ALL
-    @JvmField var stage = Stage.OBJECTS
+    @JvmField var stage = Stage.CONTOURS
   }
 
 
@@ -86,14 +86,15 @@ class AlignmentDetector : OpenCvPipeline(){
     when (captureMode){
       CaptureMode.RED -> Core.inRange(cvtMat, Scalar(lr1, lr2, lr3), Scalar(hr1, hr2, hr3), mergedMask)
       CaptureMode.BLUE -> Core.inRange(cvtMat, Scalar(lb1, lb2, lb3), Scalar(hb1, hb2, hb3), mergedMask)
-      CaptureMode.ALL -> {
-        Core.inRange(cvtMat, Scalar(lr1, lr2, lr3), Scalar(hr1, hr2, hr3), redMask)
-        Core.inRange(cvtMat, Scalar(lb1, lb2, lb3), Scalar(hb1, hb2, hb3), blueMask)
-        Core.inRange(cvtMat, Scalar(ly1, ly2, ly3), Scalar(hy1, hy2, hy3), yellowMask)
-
-        Core.bitwise_or(redMask, blueMask, mergedMask)
-        Core.bitwise_or(mergedMask, yellowMask, mergedMask)
-      }
+      // CaptureMode.ALL -> {
+      //   Core.inRange(cvtMat, Scalar(lr1, lr2, lr3), Scalar(hr1, hr2, hr3), redMask)
+      //   Core.inRange(cvtMat, Scalar(lb1, lb2, lb3), Scalar(hb1, hb2, hb3), blueMask)
+      //   Core.inRange(cvtMat, Scalar(ly1, ly2, ly3), Scalar(hy1, hy2, hy3), yellowMask)
+      //
+      //   Core.bitwise_or(redMask, blueMask, mergedMask)
+      //   Core.bitwise_or(mergedMask, yellowMask, mergedMask)
+      // }
+      CaptureMode.ALL -> Core.inRange(cvtMat, Scalar(ly1, ly2, ly3), Scalar(hy1, hy2, hy3), mergedMask)
     }
 
     Imgproc.findContours(mergedMask, contours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
@@ -119,7 +120,7 @@ class AlignmentDetector : OpenCvPipeline(){
       var center = objects[0]
       for(i in 1 until objects.size){
         val obj = objects[i]
-          if (abs(obj.x) < abs(center.x)) center = obj
+          if (obj.y < center.y) center = obj
       }
       this.center = center
     } else {

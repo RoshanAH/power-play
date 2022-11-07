@@ -21,7 +21,7 @@ class DrivetrainTuner : BaseOpmode() {
   override fun setRobot() =
       object : Robot() {
         override fun mapHardware(map: HardwareMap) {
-          dt = Mecanum(hardwareMap, "fl", "fl", "bl", "br")
+          dt = Mecanum(hardwareMap, "fl", "fr", "bl", "br")
           addComponents(dt)
         }
       }

@@ -25,16 +25,16 @@ public class SignalDetector extends OpenCvPipeline {
   Mat yellowMask = new Mat();
   Mat magentaMask = new Mat();
 
-  public static double lb1 = 0;
-  public static double lb2 = 120;
-  public static double lb3 = 70;
+  public static double lb1 = 100;
+  public static double lb2 = 100;
+  public static double lb3 = 100;
 
-  public static double hb1 = 255;
-  public static double hb2 = 152;
-  public static double hb3 = 128;
+  public static double hb1 = 120;
+  public static double hb2 = 150;
+  public static double hb3 = 150;
   
   public static double ly1 = 0;
-  public static double ly2 = 40;
+  public static double ly2 = 0;
   public static double ly3 = 80;
 
   public static double hy1 = 100;
