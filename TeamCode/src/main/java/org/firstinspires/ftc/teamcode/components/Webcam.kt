@@ -15,9 +15,8 @@ import kotlinx.coroutines.CoroutineScope
 import java.util.concurrent.TimeUnit
 import kotlin.math.PI
 import kotlin.math.pow
-import kotlin.math.cos
-import kotlin.math.abs
 import kotlin.math.tan
+import com.roshanah.jerky.math.*
 
 class Webcam(
   map: HardwareMap,
@@ -45,7 +44,7 @@ class Webcam(
   var aligning = false
 
   val dist: Double
-    get() = height * tan(theta.rad)
+    get() = height * tan(theta.deg.rad)
 
   var cameraRunning = false
     private set
@@ -59,7 +58,6 @@ class Webcam(
           Thread.sleep(1000)
           cameraRunning = true
         }
-
         override fun onError(errorCode: kotlin.Int) {}
     })
   }
@@ -87,11 +85,12 @@ class Webcam(
       val center = alignmentPipeline.center
       if (center != null){
         // change in theta as a function of velocity is v * cos(theta)^2 / height
-        val dTheta = robotVel() * cos(theta.rad).pow(2.0) / height
-        // theta += dTheta * deltaTime + center.y * kp
-        theta += center.y * kp
+        val dTheta = robotVel() * cos(theta.deg).pow(2.0) / height
+        // println("vel: ${robotVel()} height: $height dt: $deltaTime")
+        theta += dTheta * deltaTime + center.y * kp
+        // theta += center.y * kp
         theta = theta.coerceIn(0.0..90.0)
-      } else{
+     } else{
         // if there are no objects detected move the camera up to look at poles
         theta = 90.0
       }
@@ -99,6 +98,3 @@ class Webcam(
     mount.setPosition(0.5 + (90.0 - theta) / (300.0))
   }
 }
-
-private val Double.rad: Double
-  get() = this / 180.0 * PI

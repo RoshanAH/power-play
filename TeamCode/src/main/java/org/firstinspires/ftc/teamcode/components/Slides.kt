@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.DcMotor
 import org.firstinspires.ftc.teamcode.core.Component
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 
 class Slides(map: HardwareMap, left: String, right: String, claw: String) : Component {
 
@@ -18,8 +19,6 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
   var clawPos = open
     private set
 
-  var lastGrab = System.nanoTime() * 1e-9
-  var pendingRaise = false
 
   val left = map.dcMotor.get(left)
   val right = map.dcMotor.get(right)
@@ -51,10 +50,10 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
     clawPos = close
   }
 
-  fun closeAndRaise(){
+  suspend fun closeAndRaise(){
     clawPos = close
-    pendingRaise = true
-    lastGrab = System.nanoTime() * 1e-9
+    delay(500L)
+    targetPosition += 0.07
   }
 
   override fun init(scope: CoroutineScope) {
@@ -71,10 +70,10 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
     val deltaTime = time - lastTime
     lastTime = time
 
-    if (pendingRaise && time - lastGrab > 0.5) {
-      pendingRaise = false
-      targetPosition += 0.07
-    }
+    // if (pendingRaise && time - lastGrab > 0.5) {
+    //   pendingRaise = false
+    //   targetPosition += 0.07
+    // }
 
     position = (left.getCurrentPosition() + right.getCurrentPosition()).toDouble() * 0.5 / maxticks
     val derivative = -error / deltaTime

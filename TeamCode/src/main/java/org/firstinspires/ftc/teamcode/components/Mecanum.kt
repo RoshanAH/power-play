@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.HardwareMap
+import com.roshanah.jerky.utils.DriveValues
 import kotlin.math.abs
 import kotlin.math.sign
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +18,7 @@ class Mecanum(
     fr: String,
     bl: String,
     br: String,
+    val voltage: () -> Double = { 12.0 }
 ) : Component {
 
   val fl = map.get(DcMotorEx::class.java, fl)
@@ -32,22 +34,13 @@ class Mecanum(
   var blPower: Double = 0.0
   var brPower: Double = 0.0
 
-  var flp = 0.0
-    private set
-  var frp = 0.0
-    private set
-  var blp = 0.0
-    private set
-  var brp = 0.0
+  val powers: DriveValues
+    get() = DriveValues(flPower, frPower, blPower, brPower)
+
+  var pos = DriveValues.zero
     private set
 
-  var flv = 0.0
-    private set
-  var frv = 0.0
-    private set
-  var blv = 0.0
-    private set
-  var brv = 0.0
+  var vel = DriveValues.zero
     private set
 
   init {
@@ -78,6 +71,8 @@ class Mecanum(
     brPower = br * scale
   }
 
+  fun move (powers: DriveValues) = move(powers.fl, powers.fr, powers.bl, powers.br)
+
   fun reset() {
     fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)
     fr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)
@@ -90,91 +85,6 @@ class Mecanum(
     br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER)
   }
 
-  fun moveTo(fltp: Double, frtp: Double, bltp: Double, brtp: Double, kp: Double) =
-      move(
-          (fltp - flp) * kp,
-          (frtp - frp) * kp,
-          (bltp - flp) * kp,
-          (brtp - brp) * kp,
-      )
-
-  suspend fun moveUntilDone(
-      fltrp: Double,
-      frtrp: Double,
-      bltrp: Double,
-      brtrp: Double,
-      kp: Double,
-      tolerance: Double,
-      update: () -> Unit = {}
-  ) {
-    val fltp = fltrp + flp
-    val frtp = frtrp + frp
-    val bltp = bltrp + blp
-    val brtp = brtrp + brp
-
-    while (abs(fltp - flp) > tolerance &&
-        abs(frtp - frp) > tolerance &&
-        abs(bltp - blp) > tolerance &&
-        abs(brtp - brp) > tolerance) {
-      moveTo(fltp, frtp, bltp, brtp, kp)
-      update()
-      yield()
-    }
-
-    move(0.0, 0.0, 0.0, 0.0)
-  }
-
-  fun turnTo(theta: Double, kp: Double) {
-    val inchesPerDegree = ticksPerInch / ticksPerDegree
-    val inches = theta * inchesPerDegree
-    moveTo(inches, -inches, inches, -inches, kp * inchesPerDegree)
-  }
-
-  suspend fun turnUntilDone(theta: Double, kp: Double, tolerance: Double, update: () -> Unit = {}) {
-    val inchesPerDegree = ticksPerDegree / ticksPerInch 
-    val inches = theta * inchesPerDegree
-    moveUntilDone(
-        inches,
-        -inches,
-        inches,
-        -inches,
-        kp * inchesPerDegree,
-        tolerance * inchesPerDegree,
-        update
-    )
-  }
-
-  fun forwardTo(inches: Double, kp: Double) = moveTo(inches, inches, inches, inches, kp)
-  suspend fun forwardUntilDone(
-      inches: Double,
-      kp: Double,
-      tolerance: Double,
-      update: () -> Unit = {}
-  ) = moveUntilDone(inches, inches, inches, inches, kp, tolerance, update)
-
-  fun strafeTo(inches: Double, kp: Double) = moveTo(inches, -inches, -inches, inches, kp)
-  suspend fun strafeUntilDone(
-      inches: Double,
-      kp: Double,
-      tolerance: Double,
-      update: () -> Unit = {}
-  ){
-    val fltp = inches + flp
-    val frtp = -inches + frp
-    val bltp = -inches + blp
-    val brtp = inches + brp
-
-    var error = (abs(fltp - flp) + abs(frtp - frp) + abs(bltp - blp) + abs(brtp - brp)) * 0.25
-    while (abs(error) > tolerance) {
-      error = (abs(fltp - flp) + abs(frtp - frp) + abs(bltp - blp) + abs(brtp - brp)) * 0.25 
-      move(error * kp * sign(inches), -error * kp * sign(inches), -error * kp * sign(inches), error * kp * sign(inches))
-      update()
-      yield()
-    }
-
-    move(0.0, 0.0, 0.0, 0.0)
-  }
-
   fun drive(x: Double, y: Double, rot: Double) =
       move(
           y + x + rot,
@@ -183,11 +93,11 @@ class Mecanum(
           y + x - rot,
       )
 
-  fun drive(gamepad: Gamepad) =
+  fun drive(gamepad: Gamepad, scale: Double = 1.0, turnScale: Double = 1.0) =
       drive(
-          gamepad.left_stick_x.toDouble(),
-          -gamepad.left_stick_y.toDouble(),
-          gamepad.right_stick_x.toDouble()
+          gamepad.left_stick_x.toDouble() * scale,
+          -gamepad.left_stick_y.toDouble() * scale,
+          gamepad.right_stick_x.toDouble() * turnScale
       )
 
   override fun init(scope: CoroutineScope) {}
@@ -195,20 +105,22 @@ class Mecanum(
   override fun start(scope: CoroutineScope) {}
 
   override fun update(scope: CoroutineScope) {
+    val voltage = voltage()
 
-    flp = fl.getCurrentPosition() / ticksPerInch
-    frp = fr.getCurrentPosition() / ticksPerInch
-    blp = bl.getCurrentPosition() / ticksPerInch
-    brp = br.getCurrentPosition() / ticksPerInch
+    pos = 
+      DriveValues(
+       fl.getCurrentPosition().toDouble(), 
+       fr.getCurrentPosition().toDouble(), 
+       bl.getCurrentPosition().toDouble(), 
+       br.getCurrentPosition().toDouble()
+      ) / ticksPerInch
 
-    flv = fl.getVelocity() / ticksPerInch
-    frv = fr.getVelocity() / ticksPerInch
-    blv = bl.getVelocity() / ticksPerInch
-    brv = br.getVelocity() / ticksPerInch
+    vel = DriveValues(fl.getVelocity(), fr.getVelocity(), bl.getVelocity(), br.getVelocity()) / ticksPerInch
 
-    fl.setPower(flPower)
-    fr.setPower(frPower)
-    bl.setPower(blPower)
-    br.setPower(brPower)
+    fl.setPower(flPower * 12.0 / voltage)
+    fr.setPower(frPower * 12.0 / voltage)
+    bl.setPower(blPower * 12.0 / voltage)
+    br.setPower(brPower * 12.0 / voltage)
+
   }
 }

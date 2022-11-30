@@ -34,10 +34,10 @@ class DrivetrainTuner : BaseOpmode() {
 
   override fun onUpdate(scope: CoroutineScope) {
     dt.ticksPerInch = ticksPerInch
-    telemetry.addData("fl", dt.flp)
-    telemetry.addData("fr", dt.frp)
-    telemetry.addData("bl", dt.blp)
-    telemetry.addData("br", dt.brp)
+    telemetry.addData("fl", dt.pos.fl)
+    telemetry.addData("fr", dt.pos.fr)
+    telemetry.addData("bl", dt.pos.bl)
+    telemetry.addData("br", dt.pos.br)
     telemetry.update()
   }
 }

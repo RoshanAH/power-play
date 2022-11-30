@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.hardware.lynx.LynxModule
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -13,12 +14,15 @@ import kotlinx.coroutines.*
 
 abstract class BaseOpmode : LinearOpMode() {
   private lateinit var robot: Robot
+  private var hubs = listOf<LynxModule>()
 
   val gamepadListener1 = GamepadListener()
   val gamepadListener2 = GamepadListener()
   val scope = CoroutineScope(Dispatchers.Main)
 
   override fun runOpMode() {
+    hubs = hardwareMap.getAll(LynxModule::class.java)
+    hubs.forEach { it.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL)}
     robot = setRobot();
 
     try {
@@ -46,9 +50,11 @@ abstract class BaseOpmode : LinearOpMode() {
       gamepadListener2.update(gamepad2)
       onUpdate(scope)
       robot.components.forEach { it.update(scope) }
+      clearBulkCache()
     }
   }
-
+  
+  fun clearBulkCache() = hubs.forEach { it.clearBulkCache() }
 
   protected fun getBatteryVoltage(): Double {
     var result = Double.POSITIVE_INFINITY;

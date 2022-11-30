@@ -35,12 +35,15 @@ class AlignmentTest : BaseOpmode() {
       object : Robot() {
         override fun mapHardware(map: HardwareMap) {
           camera =
-              Webcam(map, "camera", "mount") { (dt.flv + dt.frv + dt.blv + dt.brv) * 0.25 }.apply {
+              Webcam(map, "camera", "mount") { (dt.vel.fl + dt.vel.fr + dt.vel.bl + dt.vel.br) * 0.25 }.apply {
                 startCamera()
                 webcam.setPipeline(alignmentPipeline)
               }
 
-          dt = Mecanum(map, "fl", "fr", "bl", "br")
+          dt = Mecanum(map, "fl", "fr", "bl", "br").apply{
+            ticksPerInch = 30.9861111
+            ticksPerDegree = 4.98611
+          }
           addComponents(dt, camera)
         }
       }

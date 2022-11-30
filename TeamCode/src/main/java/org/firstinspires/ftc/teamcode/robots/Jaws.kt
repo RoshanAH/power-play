@@ -38,7 +38,7 @@ class Jaws : Robot() {
 
   override fun mapHardware(map: HardwareMap) {
     camera = Webcam(map, "camera", "mount"){
-      (drivetrain.flv + drivetrain.frv + drivetrain.blv + drivetrain.brv) * 0.25
+      drivetrain.pos.run { (fl + fr + bl + br) * 0.25 }
     }.apply{
       kp = 0.01
     }

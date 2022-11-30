@@ -39,29 +39,23 @@ class AlignmentDetector : OpenCvPipeline(){
   }
 
   companion object {
-    @JvmField var lr1 = 0.0
-    @JvmField var lr2 = 180.0
-    @JvmField var lr3 = 0.0
+    @JvmField var rlcr = 180.0
+    @JvmField var rlcb = 0.0
 
-    @JvmField var hr1 = 200.0
-    @JvmField var hr2 = 255.0
-    @JvmField var hr3 = 255.0
+    @JvmField var rhcr = 255.0
+    @JvmField var rhcb = 255.0
 
-    @JvmField var lb1 = 50.0
-    @JvmField var lb2 = 100.0
-    @JvmField var lb3 = 170.0
+    @JvmField var blcr = 100.0
+    @JvmField var blcb = 170.0
 
-    @JvmField var hb1 = 150.0
-    @JvmField var hb2 = 150.0
-    @JvmField var hb3 = 255.0
+    @JvmField var bhcr = 150.0
+    @JvmField var bhcb = 255.0
 
-    @JvmField var ly1 = 100.0
-    @JvmField var ly2 = 140.0
-    @JvmField var ly3 = 50.0
+    @JvmField var ylcr = 140.0
+    @JvmField var ylcb = 50.0
 
-    @JvmField var hy1 = 200.0
-    @JvmField var hy2 = 180.0
-    @JvmField var hy3 = 100.0
+    @JvmField var yhcr = 180.0
+    @JvmField var yhcb = 100.0
 
     @JvmField var minArea = 500.0
 
@@ -84,23 +78,22 @@ class AlignmentDetector : OpenCvPipeline(){
 
 
     when (captureMode){
-      CaptureMode.RED -> Core.inRange(cvtMat, Scalar(lr1, lr2, lr3), Scalar(hr1, hr2, hr3), mergedMask)
-      CaptureMode.BLUE -> Core.inRange(cvtMat, Scalar(lb1, lb2, lb3), Scalar(hb1, hb2, hb3), mergedMask)
-      // CaptureMode.ALL -> {
-      //   Core.inRange(cvtMat, Scalar(lr1, lr2, lr3), Scalar(hr1, hr2, hr3), redMask)
-      //   Core.inRange(cvtMat, Scalar(lb1, lb2, lb3), Scalar(hb1, hb2, hb3), blueMask)
-      //   Core.inRange(cvtMat, Scalar(ly1, ly2, ly3), Scalar(hy1, hy2, hy3), yellowMask)
-      //
-      //   Core.bitwise_or(redMask, blueMask, mergedMask)
-      //   Core.bitwise_or(mergedMask, yellowMask, mergedMask)
-      // }
-      CaptureMode.ALL -> Core.inRange(cvtMat, Scalar(ly1, ly2, ly3), Scalar(hy1, hy2, hy3), mergedMask)
+      CaptureMode.RED -> Core.inRange(cvtMat, Scalar(0.0, rlcr, rlcb), Scalar(255.0, rhcr, rhcb), mergedMask)
+      CaptureMode.BLUE -> Core.inRange(cvtMat, Scalar(0.0, blcr, blcb), Scalar(255.0, bhcr, bhcb), mergedMask)
+      CaptureMode.ALL -> {
+        Core.inRange(cvtMat, Scalar(0.0, rlcr, rlcb), Scalar(255.0, rhcr, rhcb), redMask)
+        Core.inRange(cvtMat, Scalar(0.0, blcr, blcb), Scalar(255.0, bhcr, bhcb), blueMask)
+        Core.inRange(cvtMat, Scalar(0.0, ylcr, ylcb), Scalar(255.0, yhcr, yhcb), yellowMask)
+        Core.bitwise_or(redMask, blueMask, mergedMask)
+        Core.bitwise_or(mergedMask, yellowMask, mergedMask)
+      }
     }
 
     Imgproc.findContours(mergedMask, contours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
     contours.removeAll(contours.filter{ Imgproc.contourArea(it) < minArea })
     objects = contours.map{ contour ->
       val points = contour.toList() 
+
       var maxY = points[0].y
       var maxX = points[0].x
       var minX = points[0].x
