@@ -21,21 +21,12 @@ class AlignmentDetector : OpenCvPipeline(){
   var redMask = Mat()
   var yellowMask = Mat()
 
-  var mergedMask = Mat()
-
   enum class Stage{
       RAW,
       RED_MASK,
       BLUE_MASK,
       YELLOW_MASK,
       CONTOURS,
-      OBJECTS
-  }
-
-  enum class CaptureMode{
-      RED,
-      BLUE,
-      ALL
   }
 
   companion object {
@@ -59,39 +50,42 @@ class AlignmentDetector : OpenCvPipeline(){
 
     @JvmField var minArea = 500.0
 
-    @JvmField var captureMode = CaptureMode.ALL
     @JvmField var stage = Stage.CONTOURS
   }
 
 
-  private val contours = mutableListOf<MatOfPoint>()
-  var objects = listOf<Point>()
+  private val blueContours = mutableListOf<MatOfPoint>()
+  private val redContours = mutableListOf<MatOfPoint>()
+  private val yellowContours = mutableListOf<MatOfPoint>()
+
+  var blueCones = listOf<Point>()
     private set
-  var center: Point? = null
+  var redCones = listOf<Point>()
+    private set
+  var poles = listOf<Point>()
     private set
 
   override fun processFrame(input: Mat): Mat{
-    contours.clear()
+    blueContours.clear()
+    redContours.clear()
+    yellowContours.clear()
 
     Imgproc.blur(input, input, Size(5.0, 5.0))
     Imgproc.cvtColor(input, cvtMat, Imgproc.COLOR_RGB2YCrCb)
 
+    Core.inRange(cvtMat, Scalar(0.0, rlcr, rlcb), Scalar(255.0, rhcr, rhcb), redMask)
+    Core.inRange(cvtMat, Scalar(0.0, blcr, blcb), Scalar(255.0, bhcr, bhcb), blueMask)
+    Core.inRange(cvtMat, Scalar(0.0, ylcr, ylcb), Scalar(255.0, yhcr, yhcb), yellowMask)
 
-    when (captureMode){
-      CaptureMode.RED -> Core.inRange(cvtMat, Scalar(0.0, rlcr, rlcb), Scalar(255.0, rhcr, rhcb), mergedMask)
-      CaptureMode.BLUE -> Core.inRange(cvtMat, Scalar(0.0, blcr, blcb), Scalar(255.0, bhcr, bhcb), mergedMask)
-      CaptureMode.ALL -> {
-        Core.inRange(cvtMat, Scalar(0.0, rlcr, rlcb), Scalar(255.0, rhcr, rhcb), redMask)
-        Core.inRange(cvtMat, Scalar(0.0, blcr, blcb), Scalar(255.0, bhcr, bhcb), blueMask)
-        Core.inRange(cvtMat, Scalar(0.0, ylcr, ylcb), Scalar(255.0, yhcr, yhcb), yellowMask)
-        Core.bitwise_or(redMask, blueMask, mergedMask)
-        Core.bitwise_or(mergedMask, yellowMask, mergedMask)
-      }
-    }
+    Imgproc.findContours(blueMask, blueContours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
+    Imgproc.findContours(redMask, redContours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
+    Imgproc.findContours(yellowMask, yellowContours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
 
-    Imgproc.findContours(mergedMask, contours, Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE)
-    contours.removeAll(contours.filter{ Imgproc.contourArea(it) < minArea })
-    objects = contours.map{ contour ->
+    blueContours.removeAll(blueContours.filter{ Imgproc.contourArea(it) < minArea })
+    redContours.removeAll(redContours.filter{ Imgproc.contourArea(it) < minArea })
+    yellowContours.removeAll(yellowContours.filter{ Imgproc.contourArea(it) < minArea })
+
+    fun List<MatOfPoint>.positions() = map {contour ->
       val points = contour.toList() 
 
       var maxY = points[0].y
@@ -107,39 +101,20 @@ class AlignmentDetector : OpenCvPipeline(){
 
       Point((minX + maxX - input.width()) * 0.5, input.height() * 0.5 - maxY)
     }
-        
-    // find object closest to the center
-    if(objects.isNotEmpty()){
-      var center = objects[0]
-      for(i in 1 until objects.size){
-        val obj = objects[i]
-          if (obj.y < center.y) center = obj
-      }
-      this.center = center
-    } else {
-      this.center = null
-    }
+
+    blueCones = blueContours.positions()
+    redCones = redContours.positions()
+    poles = yellowContours.positions()
+
+
     return when (stage){
       Stage.RED_MASK -> redMask
       Stage.BLUE_MASK -> blueMask
       Stage.YELLOW_MASK -> yellowMask
       Stage.CONTOURS -> {
-        Imgproc.drawContours(input, contours, -1, Scalar(200.0, 0.0, 200.0), 2, 8)
-        input
-      }
-      Stage.OBJECTS -> {
-        objects.forEach {
-          Imgproc.ellipse(
-            input,
-            Point(it.x - input.width() * 0.5, input.height() * 0.5 - it.y),
-            Size(3.0, 3.0),
-            0.0,
-            0.0,
-            360.0,
-            Scalar(255.0, 0.0, 255.0),
-            1.unaryMinus()
-          )
-        }
+        Imgproc.drawContours(input, blueContours, -1, Scalar(0.0, 0.0, 200.0), 2, 8)
+        Imgproc.drawContours(input, redContours, -1, Scalar(200.0, 0.0, 0.0), 2, 8)
+        Imgproc.drawContours(input, yellowContours, -1, Scalar(200.0, 200.0, 0.0), 2, 8)
         input
       }
       Stage.RAW -> input

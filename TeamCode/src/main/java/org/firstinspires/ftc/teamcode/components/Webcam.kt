@@ -15,7 +15,8 @@ import kotlinx.coroutines.CoroutineScope
 import java.util.concurrent.TimeUnit
 import kotlin.math.PI
 import kotlin.math.pow
-import kotlin.math.tan
+import kotlin.math.sqrt
+import kotlin.math.atan
 import com.roshanah.jerky.math.*
 
 class Webcam(
@@ -26,8 +27,9 @@ class Webcam(
 ) : Component {
 
   var height = 9.25 
-  var kp = 0.5 // how sensitive camera turret is to lock onto object
-  var signalTheta = 80.0
+  var diagnalFOV = 55.0.deg
+  var kp = 0.1 // how sensitive camera turret is to lock onto object
+  var phi = 0.0.deg
 
   val webcam = OpenCvCameraFactory.getInstance().createWebcam(map.get(WebcamName::class.java, webcam))
   val mount = map.servo.get(mount)
@@ -35,16 +37,31 @@ class Webcam(
   val signalPipeline = SignalDetector()
   val alignmentPipeline = AlignmentDetector()
 
-  val objects: List<Point>
-    get() = alignmentPipeline.objects
   val signal: Int
     get() = signalPipeline.signalVal
 
-  var theta = 90.0 
-  var aligning = false
+  enum class Alignment {
+    BLUE_CONES,
+    RED_CONES,
+    POLES,
+    ALL,
+    NONE,
+  }
 
-  val dist: Double
-    get() = height * tan(theta.deg.rad)
+  var alignment = Alignment.NONE
+
+  var blueCones = listOf<Projection>()
+  var redCones = listOf<Projection>()
+  var poles = listOf<Projection>()
+
+  val cones: List<Projection>
+    get() = blueCones + redCones
+
+  val objects: List<Projection>
+    get() = blueCones + redCones + poles
+
+  var closest: Projection? = null
+    private set
 
   var cameraRunning = false
     private set
@@ -81,20 +98,29 @@ class Webcam(
     val deltaTime = time - lastTime
     lastTime = time
 
-    if (aligning) {
-      val center = alignmentPipeline.center
-      if (center != null){
-        // change in theta as a function of velocity is v * cos(theta)^2 / height
-        val dTheta = robotVel() * cos(theta.deg).pow(2.0) / height
-        // println("vel: ${robotVel()} height: $height dt: $deltaTime")
-        theta += dTheta * deltaTime + center.y * kp
-        // theta += center.y * kp
-        theta = theta.coerceIn(0.0..90.0)
-     } else{
-        // if there are no objects detected move the camera up to look at poles
-        theta = 90.0
-      }
+    blueCones = alignmentPipeline.blueCones.project(0.0)
+    redCones = alignmentPipeline.redCones.project(0.0)
+    poles = alignmentPipeline.poles.project(3.0)
+
+    closest = when(alignment){
+      Alignment.BLUE_CONES -> blueCones.minByOrNull { it.xy.magnitude }
+      Alignment.RED_CONES -> redCones.minByOrNull { it.xy.magnitude }
+      Alignment.POLES -> poles.minByOrNull { it.xy.magnitude }
+      Alignment.ALL -> objects.minByOrNull { it.xy.magnitude }
+      Alignment.NONE -> null
     }
-    mount.setPosition(0.5 + (90.0 - theta) / (300.0))
+
+    phi = closest?.let { phi + (it.phi - 90.0.deg - phi) * kp } ?: 0.0.deg
+
+    mount.setPosition(0.5 + (phi.deg) / (300.0))
   }
+
+  private fun List<Point>.project(zPlane: Double) = map {
+    val p = sqrt(320.0.pow(2.0) + 420.0.pow(2.0)) / (2 * tan(diagnalFOV * 0.5))
+    val theta = atan(it.x / (2 * p)).rad
+    val phi = atan(-it.y / (2 * p)).rad + 90.0.deg + phi
+    Projection(Vec2(sin(theta) * tan(phi), cos(theta) * tan(phi)) * (zPlane - height), phi, theta)
+  }
+
+  data class Projection(val xy: Vec2, val phi: Angle, val theta: Angle)
 }

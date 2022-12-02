@@ -5,11 +5,13 @@ import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.HardwareMap
+import com.roshanah.jerky.math.Pose
+import com.roshanah.jerky.math.deg
 import com.roshanah.jerky.utils.DriveValues
+import com.roshanah.jerky.utils.DriveConstants
+import com.roshanah.jerky.profiling.buildProfile
 import kotlin.math.abs
-import kotlin.math.sign
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.yield
 import org.firstinspires.ftc.teamcode.core.Component
 
 class Mecanum(
@@ -28,6 +30,7 @@ class Mecanum(
 
   var ticksPerInch = 0.0
   var ticksPerDegree = 0.0
+  var trackWidth = 0.0
 
   var flPower: Double = 0.0
   var frPower: Double = 0.0
@@ -41,6 +44,9 @@ class Mecanum(
     private set
 
   var vel = DriveValues.zero
+    private set
+
+  var relativeVel = Pose.zero
     private set
 
   init {
@@ -71,7 +77,7 @@ class Mecanum(
     brPower = br * scale
   }
 
-  fun move (powers: DriveValues) = move(powers.fl, powers.fr, powers.bl, powers.br)
+  fun move(powers: DriveValues) = move(powers.fl, powers.fr, powers.bl, powers.br)
 
   fun reset() {
     fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER)
@@ -100,6 +106,11 @@ class Mecanum(
           gamepad.right_stick_x.toDouble() * turnScale
       )
 
+  fun targetVel(vel: Pose, constants: DriveConstants){
+    val profile = buildProfile(constants, vi=relativeVel) { to(vel) }
+    move(constants.sva(profile.start.wheels))
+  }
+
   override fun init(scope: CoroutineScope) {}
 
   override fun start(scope: CoroutineScope) {}
@@ -107,20 +118,30 @@ class Mecanum(
   override fun update(scope: CoroutineScope) {
     val voltage = voltage()
 
-    pos = 
-      DriveValues(
-       fl.getCurrentPosition().toDouble(), 
-       fr.getCurrentPosition().toDouble(), 
-       bl.getCurrentPosition().toDouble(), 
-       br.getCurrentPosition().toDouble()
-      ) / ticksPerInch
+    pos =
+        DriveValues(
+            fl.getCurrentPosition().toDouble(),
+            fr.getCurrentPosition().toDouble(),
+            bl.getCurrentPosition().toDouble(),
+            br.getCurrentPosition().toDouble()
+        ) / ticksPerInch
 
-    vel = DriveValues(fl.getVelocity(), fr.getVelocity(), bl.getVelocity(), br.getVelocity()) / ticksPerInch
+    vel =
+        DriveValues(fl.getVelocity(), fr.getVelocity(), bl.getVelocity(), br.getVelocity()) /
+            ticksPerInch
+
+    relativeVel =
+      vel.run {
+        Pose(
+          (-fl + fr + bl - br) * 0.25,
+          (fl + fr + bl + br) * 0.25,
+          ((-fl + fr - bl + br) * (4 * trackWidth))
+        )
+      }
 
     fl.setPower(flPower * 12.0 / voltage)
     fr.setPower(frPower * 12.0 / voltage)
     bl.setPower(blPower * 12.0 / voltage)
     br.setPower(brPower * 12.0 / voltage)
-
   }
 }

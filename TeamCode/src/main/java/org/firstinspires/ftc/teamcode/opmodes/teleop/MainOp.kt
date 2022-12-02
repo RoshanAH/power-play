@@ -30,15 +30,15 @@ class MainOp : BaseOpmode() {
         }
       }
     }
-    gamepadListener1.apply{
-      du.onPress = {
-        scope.launch{
-          placing = true
-          robot.alignAndPlace(8.0)
-          placing = false
-        }
-      }
-    }
+    // gamepadListener1.apply{
+    //   du.onPress = {
+    //     scope.launch{
+    //       placing = true
+    //       robot.alignAndPlace(8.0)
+    //       placing = false
+    //     }
+    //   }
+    // }
   }
 
   override fun onUpdate(scope: CoroutineScope) {

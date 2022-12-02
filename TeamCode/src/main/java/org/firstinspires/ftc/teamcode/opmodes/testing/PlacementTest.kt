@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.FtcDashboard
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import org.firstinspires.ftc.teamcode.robots.Jaws
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
+import org.firstinspires.ftc.teamcode.components.Webcam
 import kotlinx.coroutines.*
 
 
@@ -29,7 +30,7 @@ class PlacementTest : BaseOpmode() {
       robot.camera.apply{
         while(!cameraRunning) yield()
         webcam.setPipeline(robot.camera.alignmentPipeline)
-        aligning = true
+        alignment = Webcam.Alignment.ALL
       }
     }
 
@@ -42,7 +43,7 @@ class PlacementTest : BaseOpmode() {
     gamepadListener1.a.onPress = {
       scope.launch{
         placing = true
-        robot.alignAndPlace(dist)
+        TODO()
         placing = false
       }
     }
@@ -58,7 +59,7 @@ class PlacementTest : BaseOpmode() {
       )
     }
 
-    telemetry.addData("distance", robot.camera.dist)
+    telemetry.addData("distance", robot.camera.closest?.xy?.magnitude)
     telemetry.update()
 
   }

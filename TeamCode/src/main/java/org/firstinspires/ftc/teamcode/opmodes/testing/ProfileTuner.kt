@@ -67,7 +67,7 @@ class ProfileTuner : BaseOpmode() {
 
   override fun onInit(scope: CoroutineScope){
       telemetry = MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry)
-    }
+  }
 
   override fun onStart(scope: CoroutineScope){
     gamepadListener1.a.onPress = {
@@ -120,15 +120,10 @@ class ProfileTuner : BaseOpmode() {
     constants = DriveConstants(maxVel, maxAccel, trackWidth * 0.5, PSVAConstants(kP, kS, kV, kA))
     val sign = if (forward) 1.0 else -1.0
 
-    val newProfile = constants.run {
-      val speedUp = interpolateVelocities(Pose.zero, Pose(0.0, maxVel * sign, 0.0))
-      val slowDown = interpolateVelocities(speedUp.end.motion.vel, Pose.zero)
-
-      val interpolationDisplacement = (speedUp.end.motion.pos.pos * 2.0).magnitude
-
-      val maintainDisplacement = displacement(speedUp.end.motion.vel, displacement - interpolationDisplacement)
-
-      speedUp + maintainDisplacement + slowDown
+    val newProfile = buildProfile(constants){
+      val speedUp = to(0.0, maxVel * sign, 0.0)
+      displace(displacement - (speedUp.displacement.pos * 2.0).magnitude)
+      stop()
     }
 
     currentProfile = newProfile

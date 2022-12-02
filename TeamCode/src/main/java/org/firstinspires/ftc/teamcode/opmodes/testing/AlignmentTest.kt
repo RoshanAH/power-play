@@ -24,7 +24,7 @@ class AlignmentTest : BaseOpmode() {
     @JvmField var kx = 0.0
     @JvmField var ky = 0.01
     @JvmField var kCam = 0.01
-    @JvmField var aligning = false
+    @JvmField var alignment = Webcam.Alignment.NONE
     @JvmField var followDist = 5.0
   }
 
@@ -60,23 +60,18 @@ class AlignmentTest : BaseOpmode() {
 
   override fun onUpdate(scope: CoroutineScope) {
     camera.kp = kCam
-    camera.aligning = aligning
-    telemetry.addData("objects found", camera.alignmentPipeline.objects.size)
-    val center = camera.alignmentPipeline.center
-    if (center != null && aligning) {
-      val vertAlignment = (160.0 - abs(center.x)) / 160.0
-      val forwardVel = (camera.dist - followDist) * ky * vertAlignment
-      dt.drive(
-          center.x * kx,
-          abs(forwardVel).coerceIn(0.1 * vertAlignment, 0.3) * sign(forwardVel),
-          center.x * kw * camera.dist
-      )
-      telemetry.addData("center", center.toString())
-      telemetry.addData("measuredDistance", camera.dist)
-    } else {
-      dt.drive(0.0, 0.0, 0.0)
+    camera.alignment = alignment
+
+    val closest = camera.closest
+
+    if(closest != null){
+      dt.drive(0.0, closest.xy.y * ky, closest.theta.rad * kw)
+    }else{
+      dt.move(0.0, 0.0, 0.0, 0.0)
     }
 
+    telemetry.addData("objects found", camera.objects.size)
+    telemetry.addData("closest", camera.closest?.xy)
     telemetry.update()
   }
 }

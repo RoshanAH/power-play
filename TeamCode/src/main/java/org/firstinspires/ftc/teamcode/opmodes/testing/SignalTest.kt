@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.acmerobotics.dashboard.FtcDashboard
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.config.Config
+import com.roshanah.jerky.math.deg
 import org.firstinspires.ftc.teamcode.components.Webcam
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
@@ -37,7 +38,7 @@ class SignalTest : LinearOpMode(){
       val deltaTime = time - lastTime
       lastTime = time
 
-      camera.theta = cameraAngle
+      camera.phi = cameraAngle.deg 
 
       camera.update(this)
       telemetry.addData("signal", camera.signalPipeline.signalVal)
