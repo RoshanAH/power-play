@@ -135,8 +135,7 @@ class Mecanum(
         Pose(
           (-fl + fr + bl - br) * 0.25,
           (fl + fr + bl + br) * 0.25,
-          ((-fl + fr - bl + br) * (4 * trackWidth))
-        )
+          ((-fl + fr - bl + br) / (4 * trackWidth)))
       }
 
     fl.setPower(flPower * 12.0 / voltage)

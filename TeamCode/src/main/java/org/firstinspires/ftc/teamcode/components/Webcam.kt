@@ -31,6 +31,16 @@ class Webcam(
   var kp = 0.1 // how sensitive camera turret is to lock onto object
   var phi = 0.0.deg
 
+  val vfov = run {
+    val p = sqrt(320.0.pow(2.0) + 240.0.pow(2.0)) / (2 * tan(diagnalFOV * 0.5))
+    atan(120.0 / (2 * p)).rad * 2.0
+  }
+
+  val hfov = run {
+    val p = sqrt(320.0.pow(2.0) + 240.0.pow(2.0)) / (2 * tan(diagnalFOV * 0.5))
+    atan(160.0 / (2 * p)).rad * 2.0
+  }
+
   val webcam = OpenCvCameraFactory.getInstance().createWebcam(map.get(WebcamName::class.java, webcam))
   val mount = map.servo.get(mount)
 
@@ -103,24 +113,31 @@ class Webcam(
     poles = alignmentPipeline.poles.project(3.0)
 
     closest = when(alignment){
-      Alignment.BLUE_CONES -> blueCones.minByOrNull { it.xy.magnitude }
-      Alignment.RED_CONES -> redCones.minByOrNull { it.xy.magnitude }
-      Alignment.POLES -> poles.minByOrNull { it.xy.magnitude }
-      Alignment.ALL -> objects.minByOrNull { it.xy.magnitude }
+      Alignment.BLUE_CONES -> blueCones.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+      Alignment.RED_CONES -> redCones.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+      Alignment.POLES -> poles.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+      Alignment.ALL -> objects.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
       Alignment.NONE -> null
     }
 
-    phi = closest?.let { phi + (it.phi - 90.0.deg - phi) * kp } ?: 0.0.deg
+
+    phi = closest?.let {
+      val hz = height - it.z
+      val dPhidT = robotVel() * hz / (it.xy.y.pow(2.0) + hz.pow(2.0)) 
+      println("dphidt: $dPhidT change: ${dPhidT * deltaTime}")
+      
+      phi + (it.phi - 90.0.deg - phi) * kp + (dPhidT * deltaTime).rad
+    } ?: 0.0.deg
 
     mount.setPosition(0.5 + (phi.deg) / (300.0))
   }
 
   private fun List<Point>.project(zPlane: Double) = map {
-    val p = sqrt(320.0.pow(2.0) + 420.0.pow(2.0)) / (2 * tan(diagnalFOV * 0.5))
+    val p = sqrt(320.0.pow(2.0) + 240.0.pow(2.0)) / (2 * tan(diagnalFOV * 0.5))
     val theta = atan(it.x / (2 * p)).rad
     val phi = atan(-it.y / (2 * p)).rad + 90.0.deg + phi
-    Projection(Vec2(sin(theta) * tan(phi), cos(theta) * tan(phi)) * (zPlane - height), phi, theta)
+    Projection(Vec2(sin(theta) * tan(phi), cos(theta) * tan(phi)) * (zPlane - height), zPlane, phi, theta)
   }
 
-  data class Projection(val xy: Vec2, val phi: Angle, val theta: Angle)
+  data class Projection(val xy: Vec2, val z: Double, val phi: Angle, val theta: Angle)
 }

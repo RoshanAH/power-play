@@ -4,20 +4,21 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.FtcDashboard
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
+import com.roshanah.jerky.math.Pose
+import com.roshanah.jerky.math.deg
 import org.firstinspires.ftc.teamcode.robots.Jaws
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.components.Webcam
 import kotlinx.coroutines.*
+import kotlin.math.sqrt
+import kotlin.math.pow
+import kotlin.math.abs
 
 
 @TeleOp(group = "testing")
 @Config
 class PlacementTest : BaseOpmode() {
 
-
-  companion object{
-    @JvmField var dist = 3.0
-  }
 
   val robot = Jaws()
   var placing = false
@@ -43,7 +44,7 @@ class PlacementTest : BaseOpmode() {
     gamepadListener1.a.onPress = {
       scope.launch{
         placing = true
-        TODO()
+        robot.place(2) { opModeIsActive() }
         placing = false
       }
     }
@@ -59,7 +60,16 @@ class PlacementTest : BaseOpmode() {
       )
     }
 
-    telemetry.addData("distance", robot.camera.closest?.xy?.magnitude)
+    robot.camera.closest?.let{
+      var x = it.xy
+      val targetVel = (it.theta + 90.0.deg).dir * sqrt(2 * robot.constants.maxAcceleration * abs(x.magnitude - 5.0))
+      val v = robot.drivetrain.relativeVel
+      val tw = (v.y * x.x - v.x * x.y) * x.magnitude / x.y.pow(3.0)
+      telemetry.addData("tv", Pose(targetVel, tw))
+      telemetry.addData("vel", v)
+      telemetry.addData("dist", x.magnitude)
+    }
+
     telemetry.update()
 
   }

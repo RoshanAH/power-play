@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.opmodes.testing
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import com.qualcomm.robotcore.hardware.HardwareMap
+import com.qualcomm.robotcore.hardware.VoltageSensor
 import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.acmerobotics.dashboard.FtcDashboard
@@ -9,9 +10,11 @@ import com.roshanah.jerky.utils.DriveValues
 import com.roshanah.jerky.utils.DriveConstants
 import com.roshanah.jerky.utils.PSVAConstants
 import com.roshanah.jerky.math.Pose
+import com.roshanah.jerky.math.rad
 import com.roshanah.jerky.profiling.buildProfile
 import kotlinx.coroutines.CoroutineScope
 import org.firstinspires.ftc.teamcode.components.Mecanum
+import org.firstinspires.ftc.teamcode.components.PSVAController
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.core.Robot
 
@@ -28,16 +31,25 @@ class DrivetrainTuner : BaseOpmode() {
   }
 
   private lateinit var dt: Mecanum
+  private lateinit var voltageSensor: HardwareMap.DeviceMapping<VoltageSensor>
   private var vels = DriveValues.zero
+  private lateinit var controller: PSVAController
+
+  val voltage: Double
+    get() = voltageSensor.elementAt(0).getVoltage()
 
   override fun setRobot() =
       object : Robot() {
         override fun mapHardware(map: HardwareMap) {
-          dt = Mecanum(map, "fl", "fr", "bl", "br").apply {
+          voltageSensor = map.voltageSensor
+          dt = Mecanum(map, "fl", "fr", "bl", "br"){
+            voltage
+          }.apply {
             ticksPerInch = 30.9861111
             ticksPerDegree = 4.98611
             trackWidth = 9.528
           }
+          controller = PSVAController(DriveConstants(v, a, dt.trackWidth * 0.5, PSVAConstants(0.0, ks, kv, ka)))
           addComponents(dt)
         }
       }
@@ -50,26 +62,21 @@ class DrivetrainTuner : BaseOpmode() {
 
   override fun onUpdate(scope: CoroutineScope) {
 
-    val target = Pose(
-      gamepad1.left_stick_x.toDouble(), 
-     -gamepad1.left_stick_y.toDouble(), 
-     -gamepad1.right_stick_x.toDouble() * dt.trackWidth
-    )
+    val constants = DriveConstants(v, a, dt.trackWidth * 0.5, PSVAConstants(0.0, ks, kv, ka))
+    controller.constants = constants
 
-    val constants = DriveConstants(v, a, dt.trackWidth, PSVAConstants(0.0, ks, kv, ka))
+    controller.update(gamepad1)
 
-    // targetVel(target, constants)
-    dt.drive(gamepad1)
+    dt.move(constants.psva(controller.wheels, dt.vel))
 
-    telemetry.addData("flt", vels.fl)
+
+    telemetry.addData("flt", controller.wheels.vel.fl)
     telemetry.addData("flv", dt.vel.fl)
-    telemetry.addData("target", target)
+    telemetry.addData("target", controller.pose(gamepad1))
+    telemetry.addData("measured", dt.relativeVel)
+    telemetry.addData("vels", controller.vel)
+    telemetry.addData("w", dt.relativeVel.heading.rad.deg)
     telemetry.update()
   }
 
-  fun targetVel(vel: Pose, constants: DriveConstants){
-    val profile = buildProfile(constants, dt.relativeVel) { to(vel) }
-    vels = profile.start.wheels.vel
-    dt.move(constants.sva(profile.start.wheels))
-  }
 }

@@ -37,7 +37,7 @@ class ProfileTuner : BaseOpmode() {
   var constants = DriveConstants(maxVel, maxAccel, trackWidth * 0.5, PSVAConstants(kP, kS, kV, kA))
   var forward = true
   var timeInterval = 0.0
-  // lateinit var voltageSensor: VoltageSensor
+  lateinit var voltageSensor: VoltageSensor
   var volts = 12.0
   lateinit var dt: Mecanum 
   
@@ -53,13 +53,14 @@ class ProfileTuner : BaseOpmode() {
 
   override fun setRobot() = object : Robot() {
     override fun mapHardware(map: HardwareMap){
+      voltageSensor = map.voltageSensor.elementAt(0)
+
       dt = Mecanum(map, "fl", "fr", "bl", "br") {
         volts
       }.apply{
         ticksPerInch = 30.9861111
         ticksPerDegree = 4.98611
       }
-      // voltageSensor = map.voltageSensor.get("fl")
 
       addComponents(dt)    
     }
@@ -81,7 +82,7 @@ class ProfileTuner : BaseOpmode() {
   }
 
   override fun onUpdate(scope: CoroutineScope){
-    // volts = voltageSensor.getVoltage()
+    volts = voltageSensor.getVoltage()
 
     when (mode) {
       Mode.DRIVE -> {
@@ -89,7 +90,7 @@ class ProfileTuner : BaseOpmode() {
       }
       Mode.TUNE -> {
         val point = currentProfile(runtime)
-        dt.move(constants.sva(point.wheels))
+        dt.move(constants.psva(point.wheels, dt.vel))
 
         if (runtime > timeInterval) {
           forward = !forward
@@ -106,7 +107,7 @@ class ProfileTuner : BaseOpmode() {
       }
     }
 
-    dt.pos.apply{
+    dt.vel.apply{
       telemetry.addData("flv", fl)
       telemetry.addData("frv", fr)
       telemetry.addData("blv", bl)

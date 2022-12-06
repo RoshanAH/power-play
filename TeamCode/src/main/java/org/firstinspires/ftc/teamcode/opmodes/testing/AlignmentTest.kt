@@ -20,12 +20,8 @@ import org.firstinspires.ftc.teamcode.core.Robot
 class AlignmentTest : BaseOpmode() {
 
   companion object {
-    @JvmField var kw = 0.0
-    @JvmField var kx = 0.0
-    @JvmField var ky = 0.01
-    @JvmField var kCam = 0.01
+    @JvmField var kp = 0.0
     @JvmField var alignment = Webcam.Alignment.NONE
-    @JvmField var followDist = 5.0
   }
 
   lateinit var camera: Webcam
@@ -35,7 +31,7 @@ class AlignmentTest : BaseOpmode() {
       object : Robot() {
         override fun mapHardware(map: HardwareMap) {
           camera =
-              Webcam(map, "camera", "mount") { (dt.vel.fl + dt.vel.fr + dt.vel.bl + dt.vel.br) * 0.25 }.apply {
+              Webcam(map, "camera", "mount") { dt.relativeVel.y }.apply {
                 startCamera()
                 webcam.setPipeline(alignmentPipeline)
               }
@@ -59,19 +55,15 @@ class AlignmentTest : BaseOpmode() {
   }
 
   override fun onUpdate(scope: CoroutineScope) {
-    camera.kp = kCam
+    camera.kp = kp 
     camera.alignment = alignment
 
-    val closest = camera.closest
-
-    if(closest != null){
-      dt.drive(0.0, closest.xy.y * ky, closest.theta.rad * kw)
-    }else{
-      dt.move(0.0, 0.0, 0.0, 0.0)
-    }
+    dt.drive(gamepad1)
 
     telemetry.addData("objects found", camera.objects.size)
+    telemetry.addData("forward vel", dt.relativeVel.y)
     telemetry.addData("closest", camera.closest?.xy)
+    telemetry.addData("phi", camera.closest?.phi?.deg)
     telemetry.update()
   }
 }

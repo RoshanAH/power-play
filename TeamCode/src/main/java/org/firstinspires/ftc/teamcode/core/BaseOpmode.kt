@@ -72,4 +72,5 @@ abstract class BaseOpmode : LinearOpMode() {
   open fun onInit(scope: CoroutineScope) {}
   open fun onStart(scope: CoroutineScope) {}
   open fun onUpdate(scope: CoroutineScope) {}
+  open fun onStop(scope: CoroutineScope) {}
 }

@@ -4,13 +4,21 @@ import org.firstinspires.ftc.teamcode.core.Robot
 import org.firstinspires.ftc.teamcode.components.Mecanum
 import org.firstinspires.ftc.teamcode.components.Slides
 import org.firstinspires.ftc.teamcode.components.Webcam
+import org.firstinspires.ftc.teamcode.components.PSVAController
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.VoltageSensor
 import com.qualcomm.robotcore.util.ReadWriteFile
+import com.roshanah.jerky.utils.DriveConstants
+import com.roshanah.jerky.utils.PSVAConstants
+import com.roshanah.jerky.utils.DriveValues
+import com.roshanah.jerky.math.Pose
+import com.roshanah.jerky.math.deg
 import kotlinx.coroutines.yield
 import kotlin.math.abs
 import kotlin.math.sign
+import kotlin.math.sqrt
+import kotlin.math.pow
 
 class Jaws : Robot() {
 
@@ -24,11 +32,10 @@ class Jaws : Robot() {
   val medium = 0.7
   val high = 1.0
 
-  val kAlignmentOmega = 0.0001
-  val kAlignmentY = 0.01
-
   val alliance: String
   val side: String
+
+  val constants = DriveConstants(80.0, 100.0, 9.528 * 0.5, PSVAConstants(0.005, 0.1, 0.01, 0.003))
 
   init {
     val allianceFile = AppUtil.getInstance().getSettingsFile("alliance.txt")
@@ -46,12 +53,13 @@ class Jaws : Robot() {
     voltageSensor = map.voltageSensor
 
     camera = Webcam(map, "camera", "mount"){
-      drivetrain.pos.run { (fl + fr + bl + br) * 0.25 }
+      drivetrain.relativeVel.y
     }.apply{
-      kp = 0.01
+      kp = 0.05
     }
 
     drivetrain = Mecanum(map, "fl", "fr", "bl", "br").apply {
+      trackWidth = constants.trackRadius * 2
       ticksPerInch = 30.9861111
       ticksPerDegree = 4.98611
     }
@@ -69,27 +77,45 @@ class Jaws : Robot() {
     addComponents(slides, drivetrain, camera)
   }
 
-  // suspend fun alignAndPlace(distance: Double){
-  //   slides.targetPosition = 1.0
-  //   camera.alignment = Webcam.Alignment.ALL
-  //   while (slides.position < 0.5) yield()
-  //   while(camera.dist > distance) {
-  //     val center = camera.alignmentPipeline.center
-  //     if (center != null && camera.aligning) {
-  //       val vertAlignment = (160.0 - abs(center.x)) / 160.0
-  //       val forwardVel = (camera.dist - distance) * kAlignmentY * vertAlignment
-  //       drivetrain.drive(
-  //           0.0,
-  //           abs(forwardVel).coerceIn(0.2 * vertAlignment, 0.4) * sign(forwardVel),
-  //           center.x * kAlignmentOmega * camera.dist.coerceAtMost(6.0)
-  //       )
-  //     } else {
-  //       drivetrain.drive(0.0, 0.0, 0.0)
-  //     }
-  //     yield()
-  //   }
-  //
-  //   slides.open()
-  // }
+  suspend fun place(level: Int, tolerance: Double = 0.5, condition: () -> Boolean = { true }){
+    if(!camera.cameraRunning) throw IllegalStateException("Cannot run place script, camera is not running")
+    if(camera.alignment != Webcam.Alignment.ALL) throw IllegalStateException("Cannot run place script, alignment mode ${camera.alignment} should be ALL")
+
+    var lastClosest = camera.closest ?: return
+
+    slides.apply{
+      targetPosition = when(level){
+        0 -> low
+        1 -> medium
+        2 -> high
+        else -> 0.0
+      }
+    }
+
+    val controller = PSVAController(constants)
+
+    while (condition()){
+      val closest = camera.closest ?: lastClosest
+      lastClosest = closest
+      
+      val x = closest.xy
+      if ((x.magnitude - 5.0) <= tolerance) break
+      val targetVel = (closest.theta + 90.0.deg).dir * sqrt(2 * constants.maxAcceleration * abs(x.magnitude - 5.0))
+      val v = drivetrain.relativeVel
+
+      val tw = (v.y * x.x - v.x * x.y) * x.magnitude / x.y.pow(3.0)
+      controller.update(Pose(targetVel * sign(x.magnitude - 5.0), tw))
+      // println(constants.psva(controller.wheels, drivetrain.vel))
+      println(controller.vel)
+
+      drivetrain.move(constants.psva(controller.wheels * 1.0, drivetrain.vel))
+
+      yield()
+    }
+
+    drivetrain.move(DriveValues.zero)
+    slides.open()
+  }
+
 
 }
