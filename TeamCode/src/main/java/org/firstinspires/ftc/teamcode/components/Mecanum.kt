@@ -100,16 +100,11 @@ class Mecanum(
       )
 
   fun drive(gamepad: Gamepad, scale: Double = 1.0, turnScale: Double = 1.0) =
-      drive(
-          gamepad.left_stick_x.toDouble() * scale,
-          -gamepad.left_stick_y.toDouble() * scale,
-          gamepad.right_stick_x.toDouble() * turnScale
-      )
-
-  fun targetVel(vel: Pose, constants: DriveConstants){
-    val profile = buildProfile(constants, vi=relativeVel) { to(vel) }
-    move(constants.sva(profile.start.wheels))
-  }
+    drive(
+      gamepad.left_stick_x.toDouble() * scale,
+      -gamepad.left_stick_y.toDouble() * scale,
+      gamepad.right_stick_x.toDouble() * turnScale
+    )
 
   override fun init(scope: CoroutineScope) {}
 
@@ -133,7 +128,7 @@ class Mecanum(
     relativeVel =
       vel.run {
         Pose(
-          (-fl + fr + bl - br) * 0.25,
+          (fl - fr - bl + br) * 0.25,
           (fl + fr + bl + br) * 0.25,
           ((-fl + fr - bl + br) / (4 * trackWidth)))
       }

@@ -23,6 +23,7 @@ class Webcam(
   map: HardwareMap,
   webcam: String,
   mount: String,
+  val slidesPos: () -> Double,
   val robotVel: () -> Double = { 0.0 }
 ) : Component {
 
@@ -108,26 +109,35 @@ class Webcam(
     val deltaTime = time - lastTime
     lastTime = time
 
+    val slides = slidesPos()
+
     blueCones = alignmentPipeline.blueCones.project(0.0)
     redCones = alignmentPipeline.redCones.project(0.0)
     poles = alignmentPipeline.poles.project(3.0)
 
-    closest = when(alignment){
-      Alignment.BLUE_CONES -> blueCones.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
-      Alignment.RED_CONES -> redCones.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
-      Alignment.POLES -> poles.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
-      Alignment.ALL -> objects.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
-      Alignment.NONE -> null
+    if (alignment != Alignment.NONE){
+      if (slides < 0.1 || slides > 0.3){
+        closest = when(alignment){
+          Alignment.BLUE_CONES -> blueCones.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+          Alignment.RED_CONES -> redCones.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+          Alignment.POLES -> poles.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+          Alignment.ALL -> objects.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+          Alignment.NONE -> null
+        }
+      }
+      phi = closest?.let {
+        val hz = height - it.z
+        val dPhidT = robotVel() * hz / (it.xy.y.pow(2.0) + hz.pow(2.0)) 
+        val delta = (it.phi - 90.0.deg - phi).rad * kp + (dPhidT * deltaTime)
+
+        val slidesMax = if (slides < 0.1) 30.0.deg else 70.0.deg
+        println("max: ${slidesMax.deg} phi: ${(phi + delta.rad).deg}")
+
+        if (phi.rad + delta > slidesMax.rad) slidesMax    
+        else phi + delta.rad
+      } ?: 10.0.deg
     }
 
-
-    phi = closest?.let {
-      val hz = height - it.z
-      val dPhidT = robotVel() * hz / (it.xy.y.pow(2.0) + hz.pow(2.0)) 
-      println("dphidt: $dPhidT change: ${dPhidT * deltaTime}")
-      
-      phi + (it.phi - 90.0.deg - phi) * kp + (dPhidT * deltaTime).rad
-    } ?: 0.0.deg
 
     mount.setPosition(0.5 + (phi.deg) / (300.0))
   }

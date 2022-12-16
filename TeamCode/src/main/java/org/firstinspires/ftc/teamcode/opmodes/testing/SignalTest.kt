@@ -19,7 +19,7 @@ class SignalTest : LinearOpMode(){
   }
 
   override fun runOpMode() = runBlocking{
-    val camera = Webcam(hardwareMap, "camera", "mount").apply{
+    val camera = Webcam(hardwareMap, "camera", "mount", { 0.0 }).apply{
       startCamera()
     }
 

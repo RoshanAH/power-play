@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes.testing
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
+import com.qualcomm.robotcore.eventloop.opmode.Disabled
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.VoltageSensor
 import com.acmerobotics.dashboard.config.Config
@@ -9,17 +10,18 @@ import com.acmerobotics.dashboard.FtcDashboard
 import com.roshanah.jerky.utils.DriveValues
 import com.roshanah.jerky.utils.DriveConstants
 import com.roshanah.jerky.utils.PSVAConstants
+import com.roshanah.jerky.utils.PSVAController
 import com.roshanah.jerky.math.Pose
 import com.roshanah.jerky.math.rad
 import com.roshanah.jerky.profiling.buildProfile
 import kotlinx.coroutines.CoroutineScope
 import org.firstinspires.ftc.teamcode.components.Mecanum
-import org.firstinspires.ftc.teamcode.components.PSVAController
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.core.Robot
 
 @TeleOp(group="testing")
 @Config
+@Disabled
 class DrivetrainTuner : BaseOpmode() {
 
   companion object{
@@ -65,14 +67,13 @@ class DrivetrainTuner : BaseOpmode() {
     val constants = DriveConstants(v, a, dt.trackWidth * 0.5, PSVAConstants(0.0, ks, kv, ka))
     controller.constants = constants
 
-    controller.update(gamepad1)
+    // controller.update(gamepad1)
 
     dt.move(constants.psva(controller.wheels, dt.vel))
 
 
     telemetry.addData("flt", controller.wheels.vel.fl)
     telemetry.addData("flv", dt.vel.fl)
-    telemetry.addData("target", controller.pose(gamepad1))
     telemetry.addData("measured", dt.relativeVel)
     telemetry.addData("vels", controller.vel)
     telemetry.addData("w", dt.relativeVel.heading.rad.deg)

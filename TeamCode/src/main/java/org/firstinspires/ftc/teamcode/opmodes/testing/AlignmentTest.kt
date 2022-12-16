@@ -31,7 +31,7 @@ class AlignmentTest : BaseOpmode() {
       object : Robot() {
         override fun mapHardware(map: HardwareMap) {
           camera =
-              Webcam(map, "camera", "mount") { dt.relativeVel.y }.apply {
+              Webcam(map, "camera", "mount", { 0.0 }, { dt.relativeVel.y }).apply {
                 startCamera()
                 webcam.setPipeline(alignmentPipeline)
               }

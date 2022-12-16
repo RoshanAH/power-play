@@ -4,13 +4,16 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.util.ReadWriteFile
 import com.qualcomm.hardware.lynx.LynxModule
+import com.roshanah.jerky.math.Pose
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import kotlinx.coroutines.*
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil
 
 abstract class BaseOpmode : LinearOpMode() {
   private lateinit var robot: Robot
@@ -74,3 +77,12 @@ abstract class BaseOpmode : LinearOpMode() {
   open fun onUpdate(scope: CoroutineScope) {}
   open fun onStop(scope: CoroutineScope) {}
 }
+
+
+val Gamepad.pose: Pose
+  get() = Pose(
+  left_stick_x.toDouble(), 
+ -left_stick_y.toDouble(), 
+ -right_stick_x.toDouble()
+) 
+

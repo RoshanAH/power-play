@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.FtcDashboard
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.roshanah.jerky.math.Pose
 import com.roshanah.jerky.math.deg
+import com.roshanah.jerky.math.rad
 import org.firstinspires.ftc.teamcode.robots.Jaws
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.components.Webcam
@@ -44,14 +45,21 @@ class PlacementTest : BaseOpmode() {
     gamepadListener1.a.onPress = {
       scope.launch{
         placing = true
-        robot.place(2) { opModeIsActive() }
+        robot.place() { opModeIsActive() }
         placing = false
       }
     }
 
   }
 
+  var lastTime = System.nanoTime() * 1e-9
+
   override fun onUpdate(scope: CoroutineScope){
+
+    val time = System.nanoTime() * 1e-9
+    val deltaTime = time - lastTime
+    lastTime = time
+
     if(!placing){
       robot.drivetrain.drive(
         gamepad1.left_stick_x.toDouble(),
@@ -60,15 +68,22 @@ class PlacementTest : BaseOpmode() {
       )
     }
 
+    val v = robot.drivetrain.relativeVel
+    telemetry.addData("vel", v)
+
     robot.camera.closest?.let{
       var x = it.xy
       val targetVel = (it.theta + 90.0.deg).dir * sqrt(2 * robot.constants.maxAcceleration * abs(x.magnitude - 5.0))
-      val v = robot.drivetrain.relativeVel
-      val tw = (v.y * x.x - v.x * x.y) * x.magnitude / x.y.pow(3.0)
+      val tw = -(v.x * x.y + v.y * x.x) / x.magnitude
+
       telemetry.addData("tv", Pose(targetVel, tw))
-      telemetry.addData("vel", v)
+      telemetry.addData("tw", tw)
       telemetry.addData("dist", x.magnitude)
+      telemetry.addData("closest", it.xy)
+      telemetry.addData("theta", it.theta.deg)
     }
+
+    telemetry.addData("powers", robot.drivetrain.powers)
 
     telemetry.update()
 

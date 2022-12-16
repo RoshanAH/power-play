@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes.testing
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
+import com.qualcomm.robotcore.eventloop.opmode.Disabled
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.FtcDashboard
@@ -12,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 
 @TeleOp(group = "testing")
 @Config
+@Disabled
 class SlideEncoderTest : BaseOpmode() {
 
   companion object{

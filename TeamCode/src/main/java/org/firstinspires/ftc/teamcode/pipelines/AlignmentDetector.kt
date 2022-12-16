@@ -30,25 +30,25 @@ class AlignmentDetector : OpenCvPipeline(){
   }
 
   companion object {
-    @JvmField var rlcr = 180.0
+    @JvmField var rlcr = 170.0
     @JvmField var rlcb = 0.0
 
     @JvmField var rhcr = 255.0
     @JvmField var rhcb = 255.0
 
     @JvmField var blcr = 100.0
-    @JvmField var blcb = 170.0
+    @JvmField var blcb = 150.0
 
     @JvmField var bhcr = 150.0
     @JvmField var bhcb = 255.0
 
-    @JvmField var ylcr = 140.0
-    @JvmField var ylcb = 50.0
+    @JvmField var ylcr = 50.0
+    @JvmField var ylcb = 0.0
 
     @JvmField var yhcr = 180.0
-    @JvmField var yhcb = 100.0
+    @JvmField var yhcb = 110.0
 
-    @JvmField var minArea = 500.0
+    @JvmField var minArea = 1200.0
 
     @JvmField var stage = Stage.CONTOURS
   }

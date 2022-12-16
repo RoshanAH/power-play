@@ -18,22 +18,9 @@ import kotlinx.coroutines.CoroutineScope
 
 @TeleOp(group="testing")
 @Config
-class ProfileTuner : BaseOpmode() {
+class JerkyTuner : BaseOpmode() {
 
-  companion object {
-    @JvmField var trackWidth = 9.5
-    @JvmField var kP = 0.0
-    @JvmField var kS = 0.0
-    @JvmField var kV = 0.0
-    @JvmField var kA = 0.0
-    @JvmField var displacement = 35.0
-    @JvmField var maxAccel = 35.0
-    @JvmField var maxVel = 35.0
-    @JvmField var mode = Mode.DRIVE
-  }
-
-
-  var currentProfile: (Double) -> ProfilePoint = { ProfilePoint.zero }
+  var currentProfile: Bounded = { ProfilePoint.zero }
   var constants = DriveConstants(maxVel, maxAccel, trackWidth * 0.5, PSVAConstants(kP, kS, kV, kA))
   var forward = true
   var timeInterval = 0.0

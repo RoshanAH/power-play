@@ -10,6 +10,7 @@ class MainOp : BaseOpmode() {
   val robot = Jaws()
   override fun setRobot() = robot
   var placing = false
+  var coneStack = 0
 
   override fun onInit(scope: CoroutineScope) {
     robot.camera.startCamera()
@@ -27,6 +28,21 @@ class MainOp : BaseOpmode() {
       a.onPress = {
         robot.slides.apply { 
           if (clawPos == open) scope.launch { closeAndRaise() } else open() 
+        }
+      }
+      rb.onPress = {
+        robot.slides.apply{
+          coneStack += 1
+          coneStack = (coneStack % 5 + 5) % 5
+          targetPosition = 0.01 + coneStack * robot.coneHeight
+        }
+      }
+
+      lb.onPress = {
+        robot.slides.apply{
+          coneStack -= 1
+          coneStack = (coneStack % 5 + 5) % 5
+          targetPosition = 0.01 + coneStack * robot.coneHeight
         }
       }
     }
@@ -51,14 +67,26 @@ class MainOp : BaseOpmode() {
           )
         robot.slides.targetPosition -= gamepad2.left_stick_y * 0.025
         robot.slides.apply {
-          if (gamepad2.dpad_up) targetPosition = robot.high
-          else if (gamepad2.dpad_down) targetPosition = 0.01
-          else if (gamepad2.dpad_left) targetPosition = robot.low
-          else if (gamepad2.dpad_right) targetPosition = robot.medium
+          if (gamepad2.dpad_up){
+            targetPosition = robot.high
+            coneStack = 0
+          } 
+          else if (gamepad2.dpad_down){
+            targetPosition = 0.01
+            coneStack = 0
+          } 
+          else if (gamepad2.dpad_left){
+            targetPosition = robot.low
+            coneStack = 0
+          } 
+          else if (gamepad2.dpad_right){
+            targetPosition = robot.medium
+            coneStack = 0
+          } 
         }
     }
 
-    telemetry.addData("robot velocity", robot.camera.robotVel())
+    telemetry.addData("slide position", robot.slides.position)
     telemetry.update()
   }
 }
