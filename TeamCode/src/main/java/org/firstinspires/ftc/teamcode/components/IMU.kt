@@ -8,6 +8,10 @@ import com.roshanah.jerky.math.rad
 import org.firstinspires.ftc.teamcode.core.Component
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import kotlinx.coroutines.CoroutineScope
+import kotlin.math.abs
+import kotlin.math.PI
+import kotlin.math.sign
+import kotlin.math.floor
 
 class IMU (
     map: HardwareMap,
@@ -20,8 +24,13 @@ class IMU (
   var heading: Angle = 0.0.rad
     private set
     
+  private var lastMeasuredVel = 0.0
+  private var rotations = 0
+
   var velocity: Double = 0.0
     private set
+
+
 
   override fun init(scope: CoroutineScope){
     val params = RevIMU.Parameters(orientation)
@@ -33,6 +42,14 @@ class IMU (
 
   override fun update(scope: CoroutineScope){
     heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS).rad
-    velocity = imu.getRobotAngularVelocity(AngleUnit.RADIANS).zRotationRate.toDouble()
+    val rawVel = imu.getRobotAngularVelocity(AngleUnit.RADIANS).zRotationRate.toDouble()
+    var difference = rawVel - lastMeasuredVel
+    if(abs(difference) > PI){
+      rotations -= sign(difference).toInt()
+    }
+    lastMeasuredVel = rawVel
+
+    
+    velocity = rotations * 2 * PI + rawVel
   }
 }

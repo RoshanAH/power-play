@@ -1,41 +1,84 @@
-package org.firstinspires.ftc.teamcode.opmodes.testing
-
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import com.roshanah.jerky.profiling.*
 import com.roshanah.jerky.utils.DriveConstants
 import com.roshanah.jerky.utils.PSVAConstants
 import com.roshanah.jerky.math.Pose
 import com.roshanah.jerky.math.rad
+import com.roshanah.jerky.math.newtonMethodSolve
 import com.acmerobotics.dashboard.config.Config
 import com.acmerobotics.dashboard.FtcDashboard
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
 import org.firstinspires.ftc.teamcode.core.Robot
 import org.firstinspires.ftc.teamcode.components.Mecanum
+import org.firstinspires.ftc.teamcode.components.IMU
+import org.firstinspires.ftc.teamcode.opmodes.jerky.JerkyConstants
+import org.firstinspires.ftc.teamcode.robots.jawsHubOrientation
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.VoltageSensor
 import kotlinx.coroutines.CoroutineScope
+import kotlin.math.PI
 
 @TeleOp(group="testing")
 @Config
 class JerkyTuner : BaseOpmode() {
 
-  var currentProfile: Bounded = { ProfilePoint.zero }
-  var constants = DriveConstants(maxVel, maxAccel, trackWidth * 0.5, PSVAConstants(kP, kS, kV, kA))
-  var forward = true
-  var timeInterval = 0.0
+  var currentProfile: Bounded = Mode.FORWARD.profile()
+  var tuning = false
   lateinit var voltageSensor: VoltageSensor
   var volts = 12.0
   lateinit var dt: Mecanum 
+  lateinit var imu: IMU
   
-  enum class Mode {
-    DRIVE,
-    TUNE;
-    val other: Mode
-      get() = when (this) {
-        DRIVE -> TUNE
-        TUNE -> DRIVE
+  enum class Mode(val profile: () -> Bounded) {
+    FORWARD({
+      buildProfile(JerkyConstants.constants){
+        to(0.0, JerkyConstants.maxVel, 0.0)
+        stop()
+        to(0.0, -JerkyConstants.maxVel, 0.0)
+        stop()
       }
+    }),
+    STRAFE({
+      buildProfile(JerkyConstants.constants){
+        to(JerkyConstants.maxVel, 0.0, 0.0)
+        stop()
+        to(-JerkyConstants.maxVel, 0.0, 0.0)
+        stop()
+      }
+    }),
+    TURN({
+      buildProfile(JerkyConstants.constants){
+        val omega = constants.maxVelocity / (2 * constants.trackRadius)
+        val toSpeed = to(0.0, 0.0, omega)
+        displace((PI - toSpeed.displacement.heading * 2).rad)
+        stop()
+        to(0.0, 0.0, -omega)
+        displace((-PI + toSpeed.displacement.heading * 2).rad)
+        stop()
+      }
+    }),
+    MOVE_AND_TURN({
+      val constants = JerkyConstants.constants
+      val omega = newtonMethodSolve({
+          buildProfile(constants){
+            to(0.0, JerkyConstants.maxVel * 0.25, it)
+            stop()
+          }.displacement.heading - PI
+        },
+        0.0,
+        constants.maxVelocity / (2 * constants.trackRadius)
+      )
+
+      buildProfile(constants){
+        to(0.0, JerkyConstants.maxVel * 0.25, omega)
+        stop()
+      }
+    });
+  }
+
+  companion object{
+    @JvmField var mode = Mode.FORWARD
   }
 
   override fun setRobot() = object : Robot() {
@@ -46,10 +89,12 @@ class JerkyTuner : BaseOpmode() {
         volts
       }.apply{
         ticksPerInch = 30.9861111
-        ticksPerDegree = 4.98611
+        trackRadius = JerkyConstants.trackRadius
       }
 
-      addComponents(dt)    
+      imu = IMU(map, "imu", jawsHubOrientation)
+
+      addComponents(dt, imu)    
     }
   }
 
@@ -59,11 +104,10 @@ class JerkyTuner : BaseOpmode() {
 
   override fun onStart(scope: CoroutineScope){
     gamepadListener1.a.onPress = {
-      mode = mode.other
-      if (mode == Mode.TUNE) {
-        resetRuntime()
-        forward = true
-        switchProfile()
+      tuning = !tuning
+      resetRuntime()
+      if(tuning){
+        currentProfile = mode.profile()
       }
     }
   }
@@ -71,27 +115,32 @@ class JerkyTuner : BaseOpmode() {
   override fun onUpdate(scope: CoroutineScope){
     volts = voltageSensor.getVoltage()
 
-    when (mode) {
-      Mode.DRIVE -> {
-        dt.drive(gamepad1)
+    if (!tuning){
+      dt.drive(gamepad1)
+    }else {
+      if(runtime > currentProfile.length){
+        resetRuntime()
+        currentProfile = mode.profile()
       }
-      Mode.TUNE -> {
-        val point = currentProfile(runtime)
-        dt.move(constants.psva(point.wheels, dt.vel))
 
-        if (runtime > timeInterval) {
-          forward = !forward
-          resetRuntime()
-          switchProfile()
-        }
+      val constants = JerkyConstants.constants
+      val point = currentProfile(runtime)
 
-        point.wheels.vel.apply{
-          telemetry.addData("tflv", fl)
-          telemetry.addData("tflv", fr)
-          telemetry.addData("tblv", bl)
-          telemetry.addData("tbrv", br)
-        }
+      dt.trackRadius = constants.trackRadius
+
+      dt.move(constants.psva(point, dt.relativeVel))
+
+      constants.wheels(point).vel.combine().apply{
+        telemetry.addData("tflv", fl)
+        telemetry.addData("tfrv", fr)
+        telemetry.addData("tblv", bl)
+        telemetry.addData("tbrv", br)
       }
+
+      telemetry.addData("tw", point.vel.heading)
+
+      // println(constants.wheels(point).vel.forward)
+
     }
 
     dt.vel.apply{
@@ -101,20 +150,7 @@ class JerkyTuner : BaseOpmode() {
       telemetry.addData("brv", br)
     }
     telemetry.addData("volts", volts)
+    telemetry.addData("omega", imu.velocity)
     telemetry.update()
-  }
-
-  private fun switchProfile(){
-    constants = DriveConstants(maxVel, maxAccel, trackWidth * 0.5, PSVAConstants(kP, kS, kV, kA))
-    val sign = if (forward) 1.0 else -1.0
-
-    val newProfile = buildProfile(constants){
-      val speedUp = to(0.0, maxVel * sign, 0.0)
-      displace(displacement - (speedUp.displacement.pos * 2.0).magnitude)
-      stop()
-    }
-
-    currentProfile = newProfile
-    timeInterval = newProfile.length
   }
 }

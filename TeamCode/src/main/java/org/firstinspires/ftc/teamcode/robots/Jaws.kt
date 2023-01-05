@@ -62,9 +62,8 @@ class Jaws : Robot() {
 
     drivetrain =
         Mecanum(map, "fl", "fr", "bl", "br").apply {
-          trackWidth = constants.trackRadius * 2
+          trackRadius = constants.trackRadius 
           ticksPerInch = 30.9861111
-          ticksPerDegree = 4.98611
         }
 
     slides =
@@ -132,7 +131,7 @@ class Jaws : Robot() {
       controller.update(tv)
 
 
-      drivetrain.move(constants.psva(controller.wheels, drivetrain.vel))
+      drivetrain.move(constants.psva(constants.wheelsRelative(controller.motion), drivetrain.relativeVel))
 
       // drivetrain.move(constants.sva(controller.wheels * 1.0))
       // println("a: ${controller.vel.heading}, power: ${constants.psva(controller.wheels, drivetrain.vel).fl}")
@@ -160,7 +159,7 @@ class Jaws : Robot() {
         else 0.0
 
       controller.update(Pose(Vec2.zero, tw))
-      drivetrain.move(constants.psva(controller.wheels, drivetrain.vel))
+      drivetrain.move(constants.psva(constants.wheelsRelative(controller.motion), drivetrain.relativeVel))
     }
 
     var lastClosest = camera.closest ?: return
@@ -183,7 +182,7 @@ class Jaws : Robot() {
       val tv = Pose(targetVel * (1.0 - dTheta / lookAngle).coerceAtLeast(0.0), tw)
 
       controller.update(tv)
-      drivetrain.move(constants.psva(controller.wheels, drivetrain.vel))
+      drivetrain.move(constants.psva(constants.wheelsRelative(controller.motion), drivetrain.relativeVel))
 
       if (closest.xy.y < thresholdDist) break
 
@@ -217,7 +216,7 @@ class Jaws : Robot() {
 
     while (active()) {
       val time = System.nanoTime() * 1e-9 - startTime
-      drivetrain.move(constants.psva(profile(time).wheels, drivetrain.vel))
+      drivetrain.move(constants.psva(profile(time), drivetrain.relativeVel))
       if (time > profile.length) break
       yield()
     }

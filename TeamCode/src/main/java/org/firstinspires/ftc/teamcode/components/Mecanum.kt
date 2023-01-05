@@ -29,8 +29,7 @@ class Mecanum(
   val br = map.get(DcMotorEx::class.java, br)
 
   var ticksPerInch = 0.0
-  var ticksPerDegree = 0.0
-  var trackWidth = 0.0
+  var trackRadius = 0.0
 
   var flPower: Double = 0.0
   var frPower: Double = 0.0
@@ -130,7 +129,7 @@ class Mecanum(
         Pose(
           (fl - fr - bl + br) * 0.25,
           (fl + fr + bl + br) * 0.25,
-          ((-fl + fr - bl + br) / (4 * trackWidth)))
+          ((-fl + fr - bl + br) / (4 * 2 * trackRadius)))
       }
 
     fl.setPower(flPower * 12.0 / voltage)
