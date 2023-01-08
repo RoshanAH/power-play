@@ -43,7 +43,15 @@ class Jaws : Robot() {
   val alliance: String
   val side: String
 
-  val constants = DriveConstants(80.0, 100.0, 9.528 * 0.5, PSVAConstants(0.005, 0.1, 0.01, 0.003))
+  val constants = DriveConstants(
+    80.0, 
+    100.0, 
+    9.528 * 0.5, 
+    PSVAConstants(0.0, 0.05, 0.01, 0.0015),
+    PSVAConstants(0.0, 0.1, 0.013, 0.002),
+    PSVAConstants(0.0, 0.0, 0.015, 0.005),
+    DriveValues(1.0, 1.0, 1.1, 1.1)
+  )
 
   init {
     alliance = readFile("alliance.txt")
@@ -83,15 +91,11 @@ class Jaws : Robot() {
   suspend fun place(tolerance: Double = 0.1, condition: () -> Boolean = active) {
     if (!camera.cameraRunning)
         throw IllegalStateException("Cannot run place script, camera is not running")
-    if (camera.alignment != Webcam.Alignment.ALL)
-        throw IllegalStateException(
-            "Cannot run place script, alignment mode ${camera.alignment} should be ALL"
-        )
 
     var lastClosest = camera.closest ?: return
 
     val controller = PSVAController(constants, drivetrain.relativeVel)
-    val dist = 4.3
+    val dist = 5.5
 
     var lastTime = System.nanoTime() * 1e-9
 

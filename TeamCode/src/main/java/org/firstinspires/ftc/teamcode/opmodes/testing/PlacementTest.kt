@@ -30,9 +30,14 @@ class PlacementTest : BaseOpmode() {
     robot.camera.startCamera()
     scope.launch{ 
       robot.camera.apply{
-        while(!cameraRunning) yield()
+        while(!cameraRunning && !isStopRequested()){
+          telemetry.addLine("Waiting for camera to start")
+          telemetry.update()
+          yield()
+        } 
+        println("made it past while loop")
         webcam.setPipeline(robot.camera.alignmentPipeline)
-        alignment = Webcam.Alignment.ALL
+        alignment = Webcam.Alignment.POLES
       }
     }
 
@@ -49,16 +54,24 @@ class PlacementTest : BaseOpmode() {
         placing = false
       }
     }
-
   }
 
   var lastTime = System.nanoTime() * 1e-9
 
   override fun onUpdate(scope: CoroutineScope){
 
+    if(!robot.camera.cameraRunning) return
+
     val time = System.nanoTime() * 1e-9
     val deltaTime = time - lastTime
     lastTime = time
+
+    robot.slides.apply {
+      if (gamepad1.dpad_up) targetPosition = robot.high
+      else if (gamepad1.dpad_down) targetPosition = 0.01
+      else if (gamepad1.dpad_left) targetPosition = robot.low
+      else if (gamepad1.dpad_right) targetPosition = robot.medium
+    }
 
     if(!placing){
       robot.drivetrain.drive(

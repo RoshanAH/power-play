@@ -131,7 +131,7 @@ class Webcam(
         val delta = (it.phi - 90.0.deg - phi).rad * kp + (dPhidT * deltaTime)
 
         val slidesMax = if (slides < 0.1) 30.0.deg else 70.0.deg
-        println("max: ${slidesMax.deg} phi: ${(phi + delta.rad).deg}")
+        // println("max: ${slidesMax.deg} phi: ${(phi + delta.rad).deg}")
 
         if (phi.rad + delta > slidesMax.rad) slidesMax    
         else phi + delta.rad
