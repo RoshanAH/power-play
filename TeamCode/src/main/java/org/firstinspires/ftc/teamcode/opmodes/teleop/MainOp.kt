@@ -25,7 +25,7 @@ class MainOp : BaseOpmode() {
   override fun onStart(scope: CoroutineScope) {
     gamepadListener2.apply {
       a.onPress = {
-        robot.slides.apply { 
+       robot.slides.apply { 
           if (clawPos == open) scope.launch { closeAndRaise() } else open() 
         }
       }
