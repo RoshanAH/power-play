@@ -152,5 +152,5 @@ class Webcam(
   data class Projection(val xy: Vec2, val z: Double, val phi: Angle, val theta: Angle)
 }
 
-val List<Webcam.Projection>.closest: Webcam.Projection?
-  get() = filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+// val List<Webcam.Projection>.closest: Webcam.Projection?
+//   get() = filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
