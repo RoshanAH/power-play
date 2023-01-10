@@ -15,14 +15,12 @@ import kotlin.math.sqrt
 import kotlin.math.pow
 import kotlin.math.abs
 
-
 @TeleOp(group = "testing")
-class PlacementTest : BaseOpmode() {
-
+class ConeStack : BaseOpmode() {
 
   val robot = Jaws()
-  var placing = false
-  
+  var grabbing = false
+
   override fun setRobot() = robot
 
   override fun onInit(scope: CoroutineScope){
@@ -34,9 +32,9 @@ class PlacementTest : BaseOpmode() {
           telemetry.update()
           yield()
         } 
-        println("made it past while loop")
+        telemetry.update()
         webcam.setPipeline(robot.camera.alignmentPipeline)
-        alignment = Webcam.Alignment.POLES
+        alignment = Webcam.Alignment.BLUE_CONES
       }
     }
 
@@ -48,9 +46,9 @@ class PlacementTest : BaseOpmode() {
   override fun onStart(scope: CoroutineScope){
     gamepadListener1.a.onPress = {
       scope.launch{
-        placing = true
-        robot.place() { opModeIsActive() }
-        placing = false
+        grabbing = true
+        robot.coneStack(4, robot.imu.heading)
+        grabbing = false
       }
     }
 
@@ -61,15 +59,11 @@ class PlacementTest : BaseOpmode() {
     }
   }
 
-  var lastTime = System.nanoTime() * 1e-9
-
   override fun onUpdate(scope: CoroutineScope){
-
     if(!robot.camera.cameraRunning) return
 
-    val time = System.nanoTime() * 1e-9
-    val deltaTime = time - lastTime
-    lastTime = time
+    telemetry.addData("distance to tape", robot.camera.closest?.xy?.y)
+    telemetry.update()
 
     robot.slides.apply {
       if (gamepad1.dpad_up) targetPosition = robot.high
@@ -78,32 +72,12 @@ class PlacementTest : BaseOpmode() {
       else if (gamepad1.dpad_right) targetPosition = robot.medium
     }
 
-    if(!placing){
+    if(!grabbing){
       robot.drivetrain.drive(
         gamepad1.left_stick_x.toDouble(),
         -gamepad1.left_stick_y.toDouble(),
         gamepad1.right_stick_x * 0.7,
       )
     }
-
-    val v = robot.drivetrain.relativeVel
-    telemetry.addData("vel", v)
-
-    robot.camera.closest?.let{
-      var x = it.xy
-      val targetVel = (it.theta + 90.0.deg).dir * sqrt(2 * robot.constants.maxAcceleration * abs(x.magnitude - 5.0))
-      val tw = -(v.x * x.y + v.y * x.x) / x.magnitude
-
-      telemetry.addData("tv", Pose(targetVel, tw))
-      telemetry.addData("tw", tw)
-      telemetry.addData("dist", x.magnitude)
-      telemetry.addData("closest", it.xy)
-      telemetry.addData("theta", it.theta.deg)
-    }
-
-    telemetry.addData("powers", robot.drivetrain.powers)
-
-    telemetry.update()
-
   }
-} 
+}

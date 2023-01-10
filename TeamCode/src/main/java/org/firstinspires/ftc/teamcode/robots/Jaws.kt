@@ -48,8 +48,8 @@ class Jaws : Robot() {
     100.0, 
     9.528 * 0.5, 
     PSVAConstants(0.0, 0.05, 0.01, 0.0015),
-    PSVAConstants(0.0, 0.1, 0.013, 0.002),
-    PSVAConstants(0.0, 0.0, 0.015, 0.005),
+    PSVAConstants(0.0, 0.05, 0.013, 0.002),
+    PSVAConstants(0.0, 0.01, 0.017, 0.001),
     DriveValues(1.0, 1.0, 1.1, 1.1)
   )
 
@@ -69,7 +69,7 @@ class Jaws : Robot() {
     imu = IMU(map, "imu", jawsHubOrientation)
 
     drivetrain =
-        Mecanum(map, "fl", "fr", "bl", "br").apply {
+        Mecanum(map, "fl", "fr", "bl", "br", { voltage }).apply {
           trackRadius = constants.trackRadius 
           ticksPerInch = 30.9861111
         }
@@ -91,11 +91,14 @@ class Jaws : Robot() {
   suspend fun place(tolerance: Double = 0.1, condition: () -> Boolean = active) {
     if (!camera.cameraRunning)
         throw IllegalStateException("Cannot run place script, camera is not running")
+    require(camera.alignment == Webcam.Alignment.ALL) {
+      "Cannot run place script, camera alignment must be set to ALL"
+    }
 
     var lastClosest = camera.closest ?: return
 
     val controller = PSVAController(constants, drivetrain.relativeVel)
-    val dist = 5.5
+    val dist = 4.5 
 
     var lastTime = System.nanoTime() * 1e-9
 
@@ -113,13 +116,14 @@ class Jaws : Robot() {
 
       val dTheta = abs(closest.theta.rad)
       val alphaScale = 0.25
+      val accelScale = 0.7
 
       val lookAngle = 15.0.deg.rad
       
       val targetVel =
         if (x.magnitude >= dist)
           (closest.theta + 90.0.deg).dir *
-          sqrt(2 * constants.maxAcceleration * abs(x.magnitude - dist)) *
+          sqrt(2 * constants.maxAcceleration * accelScale * abs(x.magnitude - dist)) *
           sign(x.magnitude - dist) * (1.0 - dTheta / lookAngle).coerceAtLeast(0.0)
         else Vec2.zero
 
@@ -150,45 +154,45 @@ class Jaws : Robot() {
   }
 
   suspend fun coneStack(cone: Int, dir: Angle, tolerance: Double = 0.5){
-    val distToWall = 20.5
-    val thresholdDist = 12.0
+    val distToWall = 24
+    val alignmentDist = 12.0
 
     val controller = PSVAController(constants, drivetrain.relativeVel)
-
-    while(camera.closest == null && active()){
-      val dTheta = abs((imu.heading - dir).rad)
-      val tw = if (dTheta * 2 * constants.trackRadius >= tolerance)
-          sqrt(constants.maxAcceleration * dTheta / constants.trackRadius) *
-          sign((dir - imu.heading).rad)
-        else 0.0
-
-      controller.update(Pose(Vec2.zero, tw))
-      drivetrain.move(constants.psva(constants.wheelsRelative(controller.motion), drivetrain.relativeVel))
-    }
 
     var lastClosest = camera.closest ?: return
 
     val lookAngle = 15.0.deg.rad
 
+    val alphaScale = 0.25
+    val accelScale = 0.7
 
     while(active()){
       val closest = camera.closest ?: lastClosest
       lastClosest = closest
 
-      val dTheta = abs((imu.heading - dir).rad)
+      val dTheta = (dir - imu.heading).rad
+      val dx = closest.xy.x
+      val dy = closest.xy.y - alignmentDist
 
-      val targetVel = Vec2(sqrt(2 * constants.maxAcceleration * abs(closest.xy.x)) * sign(closest.xy.x), sqrt(2 * constants.maxAcceleration * distToWall))
-      val tw = if (dTheta * 2 * constants.trackRadius >= tolerance)
-          sqrt(constants.maxAcceleration * dTheta / constants.trackRadius) *
-          sign((dir - imu.heading).rad)
+      val tx = if(abs(dx) >= tolerance)
+        sqrt(2 * constants.maxAcceleration * accelScale * abs(dx)) * sign(dx)
         else 0.0
 
-      val tv = Pose(targetVel * (1.0 - dTheta / lookAngle).coerceAtLeast(0.0), tw)
+      val ty = sqrt(2 * constants.maxAcceleration * accelScale * abs(dy)) * sign(dy)
+
+      val tw = if (abs(dTheta) * 2 * constants.trackRadius >= tolerance)
+          sqrt(constants.maxAcceleration * abs(dTheta) * alphaScale / constants.trackRadius) *
+          sign(dTheta)
+        else 0.0
+
+      val alignmentScale = (1.0 - abs(dTheta) / lookAngle).coerceAtLeast(0.0) // we want to slow down if the robot is not aligned yet
+
+      val tv = Pose(Vec2(tx, ty * alignmentScale), tw)
 
       controller.update(tv)
       drivetrain.move(constants.psva(constants.wheelsRelative(controller.motion), drivetrain.relativeVel))
 
-      if (closest.xy.y < thresholdDist) break
+      if(abs(dx) < tolerance && abs(dTheta) * 2 * constants.trackRadius < tolerance) break
 
       yield()
     }
@@ -196,18 +200,24 @@ class Jaws : Robot() {
     slides.targetPosition = cone * coneHeight + 0.01
     slides.open()
 
+    // follow(vi=drivetrain.relativeVel){
+    //   val vel = sqrt(constants.maxAcceleration * (distToWall + lastClosest.xy.y) + vf.y * 0.5)
+    //   to(0.0, vel, 0.0)
+    //   stop()
+    // }
+
     follow(vi=drivetrain.relativeVel){
-      val stop = interpolate(vf, Pose.zero)
-      displace(distToWall - stop.displacement.pos.magnitude)
-      append(stop)
+      val approach = to(0.0, 30.0, 0.0)
+      val stopDisplacement = interpolate(vf, Pose.zero).displacement.y
+      displace(distToWall + lastClosest.xy.y - approach.displacement.y - stopDisplacement)
+      stop()
     }
+
+    drivetrain.move(DriveValues.zero)
 
     slides.close()
     delay(250L)
     slides.targetPosition = low
-
-
-    drivetrain.move(DriveValues.zero)
   }
 
   suspend fun follow(
