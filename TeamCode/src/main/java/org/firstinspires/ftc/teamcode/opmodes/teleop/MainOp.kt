@@ -3,11 +3,13 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import kotlinx.coroutines.*
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
+
 import org.firstinspires.ftc.teamcode.robots.Jaws
+import org.firstinspires.ftc.teamcode.robots.Ptoneigh
 
 @TeleOp
 class MainOp : BaseOpmode() {
-  val robot = Jaws()
+  val robot = Ptoneigh({opModeIsActive()})
   override fun setRobot() = robot
   var placing = false
 
@@ -25,8 +27,8 @@ class MainOp : BaseOpmode() {
   override fun onStart(scope: CoroutineScope) {
     gamepadListener2.apply {
       a.onPress = {
-       robot.slides.apply { 
-          if (clawPos == open) scope.launch { closeAndRaise() } else open() 
+       robot.turret.apply {
+          if (robot.claw.clawPos == robot.claw.open) scope.launch { closeAndRaise() } else robot.claw.open()
         }
       }
     }

@@ -70,10 +70,10 @@ class Slides(map: HardwareMap, left: String, right: String, claw: String) : Comp
     val deltaTime = time - lastTime
     lastTime = time
 
-    // if (pendingRaise && time - lastGrab > 0.5) {
-    //   pendingRaise = false
-    //   targetPosition += 0.07
-    // }
+//     if (pendingRaise && time - lastGrab > 0.5) {
+//       pendingRaise = false
+//       targetPosition += 0.07
+//     }
 
     position = (left.getCurrentPosition() + right.getCurrentPosition()).toDouble() * 0.5 / maxticks
     val derivative = -error / deltaTime
