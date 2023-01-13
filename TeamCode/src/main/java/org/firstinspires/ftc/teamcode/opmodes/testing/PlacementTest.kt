@@ -36,7 +36,7 @@ class PlacementTest : BaseOpmode() {
         } 
         println("made it past while loop")
         webcam.setPipeline(robot.camera.alignmentPipeline)
-        alignment = Webcam.Alignment.POLES
+        alignment = Webcam.Alignment.ALL
       }
     }
 

@@ -119,9 +119,9 @@ class Webcam(
       if (slides < 0.1 || slides > 0.3){
         closest = when(alignment){
           Alignment.BLUE_CONES -> blueCones.closest
-          Alignment.RED_CONES -> redCones.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
-          Alignment.POLES -> poles.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
-          Alignment.ALL -> objects.filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+          Alignment.RED_CONES -> redCones.closest
+          Alignment.POLES -> poles.closest
+          Alignment.ALL -> objects.closest
           Alignment.NONE -> null
         }
       }
@@ -152,5 +152,5 @@ class Webcam(
   data class Projection(val xy: Vec2, val z: Double, val phi: Angle, val theta: Angle)
 }
 
-// val List<Webcam.Projection>.closest: Webcam.Projection?
-//   get() = filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }
+val List<Webcam.Projection>.closest: Webcam.Projection?
+  get() = filter { it.phi.deg > 90.0 }.minByOrNull { it.xy.magnitude }

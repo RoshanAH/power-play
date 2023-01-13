@@ -11,7 +11,7 @@ import com.acmerobotics.dashboard.config.Config
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 
 @TeleOp(group = "testing")
-@Disabled
+// @Disabled
 class IMUTest : LinearOpMode() {
   override fun runOpMode(){
     val imu = hardwareMap.get(IMU::class.java, "imu")

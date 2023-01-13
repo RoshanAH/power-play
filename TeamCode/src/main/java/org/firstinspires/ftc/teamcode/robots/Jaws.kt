@@ -49,7 +49,7 @@ class Jaws : Robot() {
     9.528 * 0.5, 
     PSVAConstants(0.0, 0.05, 0.01, 0.0015),
     PSVAConstants(0.0, 0.05, 0.013, 0.002),
-    PSVAConstants(0.0, 0.01, 0.017, 0.001),
+    PSVAConstants(0.0, 0.02, 0.017, 0.001),
     DriveValues(1.0, 1.0, 1.1, 1.1)
   )
 
@@ -88,17 +88,22 @@ class Jaws : Robot() {
     addComponents(slides, drivetrain, camera, imu)
   }
 
-  suspend fun place(tolerance: Double = 0.1, condition: () -> Boolean = active) {
-    if (!camera.cameraRunning)
-        throw IllegalStateException("Cannot run place script, camera is not running")
+  suspend fun place(tolerance: Double = 0.3, condition: () -> Boolean = active) {
+    require(camera.cameraRunning){
+      "Cannot run place script, camera is not running"
+    }
     require(camera.alignment == Webcam.Alignment.ALL) {
       "Cannot run place script, camera alignment must be set to ALL"
     }
 
     var lastClosest = camera.closest ?: return
 
+    camera.alignment = if(camera.redCones.contains(lastClosest)) Webcam.Alignment.RED_CONES
+                       else if (camera.blueCones.contains(lastClosest)) Webcam.Alignment.BLUE_CONES
+                       else Webcam.Alignment.POLES
+
     val controller = PSVAController(constants, drivetrain.relativeVel)
-    val dist = 4.5 
+    val dist = if(camera.alignment == Webcam.Alignment.POLES) 3.7 else 3.0
 
     var lastTime = System.nanoTime() * 1e-9
 
@@ -116,7 +121,7 @@ class Jaws : Robot() {
 
       val dTheta = abs(closest.theta.rad)
       val alphaScale = 0.25
-      val accelScale = 0.7
+      val accelScale = 0.5
 
       val lookAngle = 15.0.deg.rad
       
@@ -149,12 +154,14 @@ class Jaws : Robot() {
       yield()
     }
 
+    camera.alignment = Webcam.Alignment.ALL
+
     drivetrain.move(DriveValues.zero)
     slides.open()
   }
 
   suspend fun coneStack(cone: Int, dir: Angle, tolerance: Double = 0.5){
-    val distToWall = 24
+    val distToWall = 22
     val alignmentDist = 12.0
 
     val controller = PSVAController(constants, drivetrain.relativeVel)
@@ -192,8 +199,7 @@ class Jaws : Robot() {
       controller.update(tv)
       drivetrain.move(constants.psva(constants.wheelsRelative(controller.motion), drivetrain.relativeVel))
 
-      if(abs(dx) < tolerance && abs(dTheta) * 2 * constants.trackRadius < tolerance) break
-
+      if(dy < alignmentDist * 1.5 && abs(dx) < tolerance && abs(dTheta) * 2 * constants.trackRadius < tolerance) break
       yield()
     }
 
@@ -208,9 +214,9 @@ class Jaws : Robot() {
 
     follow(vi=drivetrain.relativeVel){
       val approach = to(0.0, 30.0, 0.0)
-      val stopDisplacement = interpolate(vf, Pose.zero).displacement.y
+      val stopDisplacement = interpolate(vf, Pose(0.0, 5.0, 0.0)).displacement.y
       displace(distToWall + lastClosest.xy.y - approach.displacement.y - stopDisplacement)
-      stop()
+      to(0.0, 5.0, 0.0)
     }
 
     drivetrain.move(DriveValues.zero)
