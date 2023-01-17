@@ -28,7 +28,7 @@ class MainOp : BaseOpmode() {
     gamepadListener2.apply {
       a.onPress = {
        robot.turret.apply {
-          if (robot.claw.clawPos == robot.claw.open) scope.launch { closeAndRaise() } else robot.claw.open()
+          if (robot.claw.clawPos == robot.claw.open) scope.launch { robot.closeAndRaise() } else robot.claw.open()
         }
       }
     }
@@ -44,19 +44,19 @@ class MainOp : BaseOpmode() {
   }
 
   override fun onUpdate(scope: CoroutineScope) {
-    val brake = if (gamepad1.right_bumper) 0.3 else (1.0 - robot.slides.position * 0.7)
+    val brake = if (gamepad1.right_bumper) 0.3 else (1.0 - robot.turret.slidePosition * 0.7)
     if(!placing){
       robot.drivetrain.drive(
           gamepad1.left_stick_x.toDouble() * brake,
           -gamepad1.left_stick_y.toDouble() * brake,
           gamepad1.right_stick_x.toDouble() * brake * 0.7
           )
-        robot.slides.targetPosition -= gamepad2.left_stick_y * 0.025
-        robot.slides.apply {
-          if (gamepad2.dpad_up) targetPosition = robot.high
-          else if (gamepad2.dpad_down) targetPosition = 0.01
-          else if (gamepad2.dpad_left) targetPosition = robot.low
-          else if (gamepad2.dpad_right) targetPosition = robot.medium
+        robot.turret.targetSlidePosition -= gamepad2.left_stick_y * 0.025
+        robot.turret.apply {
+          if (gamepad2.dpad_up) targetSlidePosition = robot.high
+          else if (gamepad2.dpad_down) targetSlidePosition = 0.01
+          else if (gamepad2.dpad_left) targetSlidePosition = robot.low
+          else if (gamepad2.dpad_right) targetSlidePosition = robot.medium
         }
     }
 

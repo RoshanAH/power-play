@@ -56,6 +56,7 @@ class Jaws : Robot() {
   init {
     alliance = readFile("alliance.txt")
     side = readFile("side.txt")
+
   }
 
   val voltage: Double

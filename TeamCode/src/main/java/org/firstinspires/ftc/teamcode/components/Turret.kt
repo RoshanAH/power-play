@@ -24,12 +24,11 @@ class Turret(map: HardwareMap, turret: String, slides: String) : Component {
 
     init {
         this.turret.setDirection(DcMotorSimple.Direction.REVERSE)
-        TODO("FIX ME ONCE YOU FIGURE OUT WHICH WAY THE MOTOR IS")
-        //this.slides.setDirection(DcMotorSimple.Direction.REVERSE)
+        this.slides.setDirection(DcMotorSimple.Direction.REVERSE)
     }
-    var position = 0.0
+    var slidePosition = 0.0
         private set
-    var targetPosition = 0.0
+    var targetSlidePosition = 0.0
         set(value) {
             field = value.coerceIn(0.0..1.0)
         }
@@ -37,7 +36,7 @@ class Turret(map: HardwareMap, turret: String, slides: String) : Component {
     private var lastError = 0.0
 
     private val slideError
-        get() = targetPosition - position
+        get() = targetSlidePosition - slidePosition
 
     var theta = 0.0
         private set

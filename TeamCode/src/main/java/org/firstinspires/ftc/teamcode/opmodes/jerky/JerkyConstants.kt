@@ -6,6 +6,7 @@ import com.roshanah.jerky.utils.DriveValues
 
 @Config
 class JerkyConstants {
+  //beef jerky constants
   companion object {
     @JvmField var yP = 0.0001
     @JvmField var yS = 0.05

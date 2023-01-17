@@ -22,7 +22,7 @@ import kotlin.math.PI
 @TeleOp(group="testing")
 @Config
 class JerkyTuner : BaseOpmode() {
-
+  //beef jerky tuner
   var currentProfile: Bounded = Mode.FORWARD.profile()
   var tuning = false
   lateinit var voltageSensor: VoltageSensor

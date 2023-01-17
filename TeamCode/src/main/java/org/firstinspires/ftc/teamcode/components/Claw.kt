@@ -10,6 +10,12 @@ import org.firstinspires.ftc.teamcode.core.Component
      var close = 0.5
      var clawPos = open
          private set
+     var extended = 0.0
+     var unextended = 0.0
+
+     val claw = map.servo.get(claw)
+     val horizontal = map.servo.get(horizontal)
+
 
      fun open(){
          clawPos = open
@@ -18,6 +24,7 @@ import org.firstinspires.ftc.teamcode.core.Component
      fun close(){
          clawPos = close
      }
+
 
     override fun init(scope: CoroutineScope) {
         TODO("Not yet implemented")
