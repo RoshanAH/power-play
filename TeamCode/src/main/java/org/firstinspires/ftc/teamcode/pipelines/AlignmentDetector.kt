@@ -36,10 +36,10 @@ class AlignmentDetector : OpenCvPipeline(){
     @JvmField var rhcr = 255.0
     @JvmField var rhcb = 255.0
 
-    @JvmField var blcr = 100.0
-    @JvmField var blcb = 150.0
+    @JvmField var blcr = 0.0
+    @JvmField var blcb = 160.0
 
-    @JvmField var bhcr = 150.0
+    @JvmField var bhcr = 120.0
     @JvmField var bhcb = 255.0
 
     @JvmField var ylcr = 50.0

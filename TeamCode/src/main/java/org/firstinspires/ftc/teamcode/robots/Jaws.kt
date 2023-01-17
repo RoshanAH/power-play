@@ -64,7 +64,7 @@ class Jaws : Robot() {
   override fun mapHardware(map: HardwareMap) {
     voltageSensor = map.voltageSensor
 
-    camera = Webcam(map, "camera", "mount", { slides.position }, { drivetrain.relativeVel.y }).apply { kp = 0.05 }
+    camera = Webcam(map, "camera", "mount", { slides.position }, { drivetrain.relativeVel.y }).apply { kp = 0.07 }
 
     imu = IMU(map, "imu", jawsHubOrientation)
 
@@ -103,7 +103,7 @@ class Jaws : Robot() {
                        else Webcam.Alignment.POLES
 
     val controller = PSVAController(constants, drivetrain.relativeVel)
-    val dist = if(camera.alignment == Webcam.Alignment.POLES) 3.7 else 3.0
+    val dist = if(camera.alignment == Webcam.Alignment.POLES) 4.0 else 4.0
 
     var lastTime = System.nanoTime() * 1e-9
 
@@ -120,8 +120,8 @@ class Jaws : Robot() {
       val v = drivetrain.relativeVel
 
       val dTheta = abs(closest.theta.rad)
-      val alphaScale = 0.25
-      val accelScale = 0.5
+      val alphaScale = 0.5
+      val accelScale = 0.3
 
       val lookAngle = 15.0.deg.rad
       
@@ -157,21 +157,39 @@ class Jaws : Robot() {
     camera.alignment = Webcam.Alignment.ALL
 
     drivetrain.move(DriveValues.zero)
+    slides.targetPosition -= 0.125
     slides.open()
   }
 
   suspend fun coneStack(cone: Int, dir: Angle, tolerance: Double = 0.5){
-    val distToWall = 22
+    val distToWall = 17 
     val alignmentDist = 12.0
 
-    val controller = PSVAController(constants, drivetrain.relativeVel)
-
-    var lastClosest = camera.closest ?: return
+    var controller = PSVAController(constants, drivetrain.relativeVel)
 
     val lookAngle = 15.0.deg.rad
 
     val alphaScale = 0.25
     val accelScale = 0.7
+
+    var lastClosest = run {
+      while(active()){
+        val dTheta = (dir - imu.heading).rad
+        val tw = if (abs(dTheta) * 2 * constants.trackRadius >= tolerance)
+          sqrt(constants.maxAcceleration * abs(dTheta) * alphaScale / constants.trackRadius) *
+          sign(dTheta)
+          else 0.0
+
+        controller.update(Pose(0.0, 0.0, tw))
+        drivetrain.move(constants.psva(constants.wheelsRelative(controller.motion), drivetrain.relativeVel))
+
+        camera.closest?.let { return@run it }
+      }
+      return@coneStack
+    }
+
+    drivetrain.move(DriveValues.zero)
+    controller = PSVAController(constants, Pose(0.0, drivetrain.relativeVel.y, 0.0))
 
     while(active()){
       val closest = camera.closest ?: lastClosest
@@ -199,6 +217,8 @@ class Jaws : Robot() {
       controller.update(tv)
       drivetrain.move(constants.psva(constants.wheelsRelative(controller.motion), drivetrain.relativeVel))
 
+      println("in cone pickup feedback loop")
+
       if(dy < alignmentDist * 1.5 && abs(dx) < tolerance && abs(dTheta) * 2 * constants.trackRadius < tolerance) break
       yield()
     }
@@ -211,12 +231,15 @@ class Jaws : Robot() {
     //   to(0.0, vel, 0.0)
     //   stop()
     // }
-
-    follow(vi=drivetrain.relativeVel){
-      val approach = to(0.0, 30.0, 0.0)
-      val stopDisplacement = interpolate(vf, Pose(0.0, 5.0, 0.0)).displacement.y
-      displace(distToWall + lastClosest.xy.y - approach.displacement.y - stopDisplacement)
-      to(0.0, 5.0, 0.0)
+    
+    if(active()){
+      follow(vi=drivetrain.relativeVel){
+        val approach = to(0.0, 40.0, 0.0)
+        val stopVel = 15.0
+        val stopDisplacement = interpolate(vf, Pose(0.0, stopVel, 0.0)).displacement.y
+        displace(distToWall + lastClosest.xy.y - approach.displacement.y - stopDisplacement)
+        to(0.0, stopVel, 0.0)
+      }
     }
 
     drivetrain.move(DriveValues.zero)
@@ -237,6 +260,7 @@ class Jaws : Robot() {
     while (active()) {
       val time = System.nanoTime() * 1e-9 - startTime
       drivetrain.move(constants.psva(profile(time), drivetrain.relativeVel))
+      println("in profile follow loop")
       if (time > profile.length) break
       yield()
     }

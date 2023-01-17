@@ -25,12 +25,12 @@ public class SignalDetector extends OpenCvPipeline {
   Mat yellowMask = new Mat();
   Mat magentaMask = new Mat();
 
-  public static double lb1 = 0;
-  public static double lb2 = 130;
-  public static double lb3 = 100;
+  public static double lb1 = 100;
+  public static double lb2 = 0;
+  public static double lb3 = 50;
 
-  public static double hb1 = 255;
-  public static double hb2 = 200;
+  public static double hb1 = 115;
+  public static double hb2 = 255;
   public static double hb3 = 255;
   
   public static double ly1 = 0;
@@ -45,9 +45,14 @@ public class SignalDetector extends OpenCvPipeline {
   public static double lm2 = 50;
   public static double lm3 = 30;
 
-  public static double hm1 = 255;
+  public static double hm1 = 170;
   public static double hm2 = 255;
   public static double hm3 = 255;
+
+  public static int x = 60;
+  public static int y = 80;
+  public static int w = 200;
+  public static int h = 100;
 
   public static Out stage = Out.RAW;
 
@@ -64,6 +69,7 @@ public class SignalDetector extends OpenCvPipeline {
 @Override
   public Mat processFrame(Mat input) {
     Imgproc.blur(input, input, new Size(3, 3));
+    input = input.submat(y, y + h, x, x + w);
     Imgproc.cvtColor(input, hslMat, Imgproc.COLOR_RGB2HLS);
 
     Core.inRange(hslMat, new Scalar(lb1, lb2, lb3), new Scalar(hb1, hb2, hb3), blueMask);

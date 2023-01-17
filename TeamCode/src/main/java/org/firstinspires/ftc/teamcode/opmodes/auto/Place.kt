@@ -9,6 +9,8 @@ import com.roshanah.jerky.math.Pose
 import com.roshanah.jerky.math.bisectionMethodSolve
 import com.roshanah.jerky.math.rad
 import com.roshanah.jerky.math.Angle
+import com.roshanah.jerky.math.sin
+import com.roshanah.jerky.math.cos
 import com.roshanah.jerky.profiling.buildProfile
 import org.firstinspires.ftc.teamcode.components.Webcam
 import org.firstinspires.ftc.teamcode.core.BaseOpmode
@@ -19,6 +21,8 @@ import kotlinx.coroutines.launch
 import com.acmerobotics.dashboard.FtcDashboard
 import kotlinx.coroutines.yield
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.GlobalScope
 import kotlin.math.sqrt
 import kotlin.math.PI
 import kotlin.math.abs
@@ -40,34 +44,37 @@ class Place : BaseOpmode(){
   // placementXVelOffset is an X velocity offset because the robot might veer off the side when moving to the junction
   // angle is just the angle the robot turns to place the on junction
 
-  private enum class Junction(val slidePos: Double, val backwardsDist: Double, val placementXVelOffset: Double, val angle: Angle){
-    TALL_X(1.0,                                   /*just these 3 values*/  20.0, 0.0,  90.0.deg), // this is the tall junction closest to the cone stack
-    MEDIUM(0.7, /*keep these the same as TALL_X but just flip the angle*/  20.0, 0.0, -90.0.deg), // this is the medium height junction closest to cone stack
-    TALL(1.0, 50.0, 20.0, -130.0.deg), // this is the tall junction closest to the robot's starting position
+  private enum class Junction(val slidePos: Double, val backwardsDist: Double, val placementXVelOffset: Double, val angle: Angle, val parkDist: Double){
+    TALL_X(1.0,                                   /*just these 3 values*/  35.0, -11.0,  110.0.deg, 3.0), // this is the tall junction closest to the cone stack
+    MEDIUM(0.7, /*keep these the same as TALL_X but just flip the angle*/  35.0, 11.0, -110.0.deg, 3.0), // this is the medium height junction closest to cone stack
+    TALL(1.0, 50.0, 20.0, -130.0.deg, 24.0), // this is the tall junction closest to the robot's starting position
   }
 
-  private val conePlacements = listOf(Junction.TALL, Junction.TALL, Junction.TALL, Junction.TALL, Junction.TALL) // change this around to affect the auto path
+  private val conePlacements = listOf(Junction.TALL_X, Junction.TALL_X, Junction.TALL_X, Junction.MEDIUM, Junction.MEDIUM) // change this around to affect the auto path
 
   override fun setRobot() = robot
 
   override fun onInit(scope: CoroutineScope){
     robot.slides.claw.setPosition(robot.slides.close)
-    robot.camera.mount.setPosition(0.5)
+    robot.camera.mount.setPosition(0.53)
     robot.slides.close()
-
-    FtcDashboard.getInstance().startCameraStream(robot.camera.webcam, 30.0)
+    robot.camera.webcam.setPipeline(robot.camera.signalPipeline)
 
     scope.launch{
       robot.camera.startCamera()
-      while(!isStopRequested() && !robot.camera.cameraRunning){
+      while(opModeInInit() && !robot.camera.cameraRunning){
         telemetry.addLine("Waiting for camera to start...")
+        telemetry.addData("alliance", robot.alliance)
         telemetry.update()
         yield()
       }
-      robot.camera.webcam.setPipeline(robot.camera.signalPipeline)
-      while(!isStopRequested() && signal == null){
+
+      FtcDashboard.getInstance().startCameraStream(robot.camera.webcam, 30.0)
+      
+      while(opModeInInit() || signal == null || signal == 0){
         signal = robot.camera.signal
-        telemetry.addData("signal", signal)
+        telemetry.addData("signal", robot.camera.signal)
+        telemetry.addData("alliance", robot.alliance)
         telemetry.update()
         yield()
       }
@@ -75,6 +82,9 @@ class Place : BaseOpmode(){
   }
 
   override fun onStart(scope: CoroutineScope){
+
+    val sideSign = if(robot.side == "right") 1.0 else -1.0
+
     scope.launch{
       while(opModeIsActive() && signal == null) yield() // wait until the camera has a signal
 
@@ -83,8 +93,8 @@ class Place : BaseOpmode(){
       robot.slides.targetPosition = robot.high
 
       robot.follow{ // approach the junction
-        to(-40.0, 5.0, 0.0)
-        val angle = 25.0.deg
+        to(-40.0 * sideSign, 5.0, 0.0)
+        val angle = 25.0.deg * sideSign
         turnTo(0.0, 35.0, angle)
       }
 
@@ -93,27 +103,27 @@ class Place : BaseOpmode(){
       // after we place, we want to put the slides down after a second and only look at blue cones in order to pick up from the stack
       // we call launch here because we want to wait a second without blocking the code below it
       launch { 
-        delay(1000L)
+        robot.camera.alignment = if (robot.alliance == "blue") Webcam.Alignment.BLUE_CONES else Webcam.Alignment.RED_CONES
+        delay(500L)
         robot.slides.targetPosition = 0.01
-        robot.camera.alignment = Webcam.Alignment.BLUE_CONES
       }
 
       // back up from the junction, and move and turn to look at the cone stack
       robot.follow(theta=robot.imu.heading){
         to(Pose(-(90.0.deg + theta).dir * 30.0, 0.0))
-        turnTo(10.0, 5.0, -theta)
+        turnTo(10.0 * sideSign + cos(theta) * 10.0, 5.0, -theta)
         to(0.0, 30.0, 0.0)
-        turnTo(20.0, 0.0, -90.0.deg)
+        turnTo(20.0 * sideSign, 0.0, -90.0.deg * sideSign)
       }
 
       var cycle = 0
       
-      while(opModeIsActive() && 30.0 - runtime > 10.0 && cycle <= 4){
-        robot.coneStack(4 - cycle, -90.0.deg)
+      while(opModeIsActive() && 30.0 - runtime > 5.0 && cycle <= 4){
+        robot.coneStack(4 - cycle, -90.0.deg * sideSign)
         val junction = conePlacements[cycle]
         
         launch{ // after we pick up the cone we need to raise the slides
-          delay(1000L)
+          delay(500L)
           robot.slides.targetPosition = junction.slidePos
           robot.camera.alignment = Webcam.Alignment.ALL
         }
@@ -122,7 +132,7 @@ class Place : BaseOpmode(){
           val vel = bisectionMethodSolve({
               buildProfile(constants){
                 to(0.0, it, 0.0)
-                turnTo(junction.placementXVelOffset, it, junction.angle)
+                turnTo(junction.placementXVelOffset, it, junction.angle * sideSign)
               }.displacement.y + junction.backwardsDist
             },
             -constants.maxVelocity,
@@ -130,25 +140,25 @@ class Place : BaseOpmode(){
           )
 
           to(0.0, vel, 0.0)
-          turnTo(junction.placementXVelOffset, vel, junction.angle)
+          turnTo(junction.placementXVelOffset, vel, junction.angle * sideSign)
         }
 
         robot.place()
         delay(250L)
         
         launch{
-          delay(1000L)
+          delay(500L)
           robot.slides.targetPosition = 0.01
           robot.camera.alignment = Webcam.Alignment.BLUE_CONES
         }
 
         robot.follow(theta=robot.imu.heading){
-          to(Pose(-(90.0.deg + theta).dir * 30.0, 0.0))
+          to(Pose((-(90.0.deg + theta).dir) * (10.0 + abs(sin(theta)) * 20.0), 0.0))
         }
 
         val controller = PSVAController(robot.constants, robot.drivetrain.relativeVel)
 
-        val tTheta = -90.0.deg
+        val tTheta = -90.0.deg * sideSign
 
         while(opModeIsActive()){
           val heading = robot.imu.heading
@@ -165,9 +175,14 @@ class Place : BaseOpmode(){
         }
 
         cycle++
-        delay(250L)
       }
 
+      robot.drivetrain.move(DriveValues.zero)
+      robot.follow{
+        val displacement = (conePlacements[cycle - 1].parkDist + (signal!! - 2) * 18.0) * sideSign
+        to(0.0, sqrt(constants.maxAcceleration * abs(displacement)) * sign(displacement), 0.0)
+        stop()
+      }
       robot.drivetrain.move(DriveValues.zero)
     }
   }
@@ -175,5 +190,9 @@ class Place : BaseOpmode(){
   override fun onUpdate(scope: CoroutineScope){
     telemetry.addData("heading", robot.imu.heading.deg)
     telemetry.update()
+  }
+
+  override fun onStop(scope: CoroutineScope){
+    robot.camera.webcam.closeCameraDevice() 
   }
 }

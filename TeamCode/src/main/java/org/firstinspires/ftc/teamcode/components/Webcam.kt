@@ -84,6 +84,9 @@ class Webcam(
         override fun onOpened(){
           webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT)
           Thread.sleep(1000)
+          // val exposure = webcam.exposureControl.getExposure(TimeUnit.MILLISECONDS)
+          // webcam.exposureControl.mode = ExposureControl.Mode.Manual
+          // webcam.exposureControl.setExposure(exposure, TimeUnit.MILLISECONDS)
           cameraRunning = true
         }
         override fun onError(errorCode: kotlin.Int) {}
@@ -130,11 +133,11 @@ class Webcam(
         val dPhidT = robotVel() * hz / (it.xy.y.pow(2.0) + hz.pow(2.0)) 
         val delta = (it.phi - 90.0.deg - phi).rad * kp + (dPhidT * deltaTime)
 
-        val slidesMax = if (slides < 0.1) 30.0.deg else 70.0.deg
+        val slidesMax = if (slides < 0.1) 28.0.deg else 70.0.deg
         // println("max: ${slidesMax.deg} phi: ${(phi + delta.rad).deg}")
 
         if (phi.rad + delta > slidesMax.rad) slidesMax    
-        else phi + delta.rad
+        else phi + delta.rad * 1.0
       } ?: (phi - (30.0.deg * deltaTime)).deg.coerceAtLeast(10.0).deg
     }
 

@@ -34,7 +34,7 @@ class ConeStack : BaseOpmode() {
         } 
         telemetry.update()
         webcam.setPipeline(robot.camera.alignmentPipeline)
-        alignment = Webcam.Alignment.BLUE_CONES
+        alignment = if (robot.alliance == "blue") Webcam.Alignment.BLUE_CONES else Webcam.Alignment.RED_CONES
       }
     }
 
@@ -63,6 +63,7 @@ class ConeStack : BaseOpmode() {
     if(!robot.camera.cameraRunning) return
 
     telemetry.addData("distance to tape", robot.camera.closest?.xy?.y)
+    telemetry.addData("alliance", robot.alliance)
     telemetry.update()
 
     robot.slides.apply {

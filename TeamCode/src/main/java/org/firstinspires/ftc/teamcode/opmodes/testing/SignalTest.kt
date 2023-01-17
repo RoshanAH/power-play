@@ -39,8 +39,8 @@ class SignalTest : LinearOpMode(){
       lastTime = time
 
       camera.phi = cameraAngle.deg 
-
       camera.update(this)
+
       telemetry.addData("signal", camera.signalPipeline.signalVal)
       telemetry.addData("image quality", dash.getImageQuality())
       telemetry.addData("mountPos", camera.mount.getPosition())
