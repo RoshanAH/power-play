@@ -136,8 +136,7 @@ class Webcam(
         }
 
         targetPhi = target?.let {
-          // phi + (it - pos).phi 
-          targetPhi 
+          phi + (it - pos).phi
         } ?: (targetPhi - (30.0.deg * deltaTime))
       }
 

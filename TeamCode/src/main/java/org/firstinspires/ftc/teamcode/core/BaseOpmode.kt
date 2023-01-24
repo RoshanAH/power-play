@@ -21,9 +21,15 @@ abstract class BaseOpmode : LinearOpMode() {
 
   val gamepadListener1 = GamepadListener()
   val gamepadListener2 = GamepadListener()
-  val scope = CoroutineScope(Dispatchers.Main)
+  val scope = CoroutineScope(newSingleThreadContext("main"))
 
   override fun runOpMode() {
+
+    //try running this 
+    // runBlocking(Dispatchers.Main){
+    //
+    // }
+
     hubs = hardwareMap.getAll(LynxModule::class.java)
     hubs.forEach { it.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL)}
     robot = setRobot();
@@ -55,6 +61,9 @@ abstract class BaseOpmode : LinearOpMode() {
       robot.components.forEach { it.update(scope) }
       clearBulkCache()
     }
+
+    onStop(scope)
+    scope.cancel()
   }
   
   fun clearBulkCache() = hubs.forEach { it.clearBulkCache() }

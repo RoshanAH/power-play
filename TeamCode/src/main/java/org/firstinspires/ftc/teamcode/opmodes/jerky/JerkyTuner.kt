@@ -13,7 +13,6 @@ import org.firstinspires.ftc.teamcode.core.Robot
 import org.firstinspires.ftc.teamcode.components.Mecanum
 import org.firstinspires.ftc.teamcode.components.IMU
 import org.firstinspires.ftc.teamcode.opmodes.jerky.JerkyConstants
-import org.firstinspires.ftc.teamcode.robots.jawsHubOrientation
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.VoltageSensor
 import kotlinx.coroutines.CoroutineScope
@@ -92,7 +91,7 @@ class JerkyTuner : BaseOpmode() {
         trackRadius = JerkyConstants.trackRadius
       }
 
-      imu = IMU(map, "imu", jawsHubOrientation)
+      imu = IMU(map, "imu", TODO())
 
       addComponents(dt, imu)    
     }
